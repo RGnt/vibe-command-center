@@ -20,16 +20,19 @@ const WikiView = ({ project, isGlobal = false }) => {
         // Listen for internal wiki navigation events
         const handleWikiNav = (e) => {
             const slug = e.detail.slug;
-            const targetPage = pages.find(p => p.slug === slug);
-            if (targetPage) {
-                setActivePage(targetPage);
-                setIsEditing(false);
-            }
+            setPages(currentPages => {
+                const targetPage = currentPages.find(p => p.slug === slug);
+                if (targetPage) {
+                    setActivePage(targetPage);
+                    setIsEditing(false);
+                }
+                return currentPages;
+            });
         };
         
         window.addEventListener('wikiNavigate', handleWikiNav);
         return () => window.removeEventListener('wikiNavigate', handleWikiNav);
-    }, [project, isGlobal, pages]);
+    }, [project, isGlobal]);
 
     const fetchPages = async () => {
         setLoading(true);
