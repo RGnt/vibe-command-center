@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"todo-backend/database"
+	"todo-backend/middleware"
 	"todo-backend/models"
 
 	"github.com/go-chi/chi/v5"
@@ -14,10 +15,16 @@ import (
 
 // GetWorkflows gets all workflows
 func GetWorkflows(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	database.Mutex.RLock()
 	defer database.Mutex.RUnlock()
 
-	rows, err := database.DB.Query(`SELECT id, name, created_at FROM workflows ORDER BY created_at DESC`)
+	rows, err := database.DB.Query(`SELECT id, name, created_at FROM workflows WHERE user_id = $1 ORDER BY created_at DESC`, userID)
 	if err != nil {
 		http.Error(w, "Failed to fetch workflows", http.StatusInternalServerError)
 		return
@@ -34,6 +41,7 @@ func GetWorkflows(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to scan workflow", http.StatusInternalServerError)
 			return
 		}
+		workflow.UserID = userID
 		workflow.CreatedAt = createdAt
 
 		stageRows, err := database.DB.Query(`SELECT id, name, "order" FROM workflow_stages WHERE workflow_id = $1 ORDER BY "order"`, workflow.ID)
@@ -64,6 +72,12 @@ func GetWorkflows(w http.ResponseWriter, r *http.Request) {
 
 // CreateWorkflow creates a new workflow
 func CreateWorkflow(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var workflow models.Workflow
 	if err := json.NewDecoder(r.Body).Decode(&workflow); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -74,8 +88,8 @@ func CreateWorkflow(w http.ResponseWriter, r *http.Request) {
 	defer database.Mutex.Unlock()
 
 	var id int64
-	query := `INSERT INTO workflows (name) VALUES ($1) RETURNING id`
-	err := database.DB.QueryRow(query, workflow.Name).Scan(&id)
+	query := `INSERT INTO workflows (user_id, name) VALUES ($1, $2) RETURNING id`
+	err := database.DB.QueryRow(query, userID, workflow.Name).Scan(&id)
 	if err != nil {
 		http.Error(w, "Failed to create workflow", http.StatusInternalServerError)
 		return
@@ -98,6 +112,7 @@ func CreateWorkflow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to fetch created workflow", http.StatusInternalServerError)
 		return
 	}
+	createdWorkflow.UserID = userID
 	createdWorkflow.CreatedAt = createdAt
 
 	stageRows, err := database.DB.Query(`SELECT id, name, "order" FROM workflow_stages WHERE workflow_id = $1 ORDER BY "order"`, id)
@@ -126,6 +141,12 @@ func CreateWorkflow(w http.ResponseWriter, r *http.Request) {
 
 // UpdateWorkflow updates a workflow
 func UpdateWorkflow(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Invalid workflow ID", http.StatusBadRequest)
@@ -141,7 +162,7 @@ func UpdateWorkflow(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	_, err = database.DB.Exec("UPDATE workflows SET name = $1 WHERE id = $2", updatedWorkflow.Name, id)
+	_, err = database.DB.Exec("UPDATE workflows SET name = $1 WHERE id = $2 AND user_id = $3", updatedWorkflow.Name, id, userID)
 	if err != nil {
 		http.Error(w, "Failed to update workflow", http.StatusInternalServerError)
 		return
@@ -170,6 +191,7 @@ func UpdateWorkflow(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to fetch updated workflow", http.StatusInternalServerError)
 		return
 	}
+	workflow.UserID = userID
 	workflow.CreatedAt = createdAt
 
 	stageRows, err := database.DB.Query(`SELECT id, name, "order" FROM workflow_stages WHERE workflow_id = $1 ORDER BY "order"`, id)
@@ -197,6 +219,12 @@ func UpdateWorkflow(w http.ResponseWriter, r *http.Request) {
 
 // DeleteWorkflow deletes a workflow
 func DeleteWorkflow(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Invalid workflow ID", http.StatusBadRequest)
@@ -206,7 +234,7 @@ func DeleteWorkflow(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	_, err = database.DB.Exec("DELETE FROM workflows WHERE id = $1", id)
+	_, err = database.DB.Exec("DELETE FROM workflows WHERE id = $1 AND user_id = $2", id, userID)
 	if err != nil {
 		http.Error(w, "Failed to delete workflow", http.StatusInternalServerError)
 		return

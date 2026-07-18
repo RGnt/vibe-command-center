@@ -1,6 +1,9 @@
 import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 const Sidebar = ({ projects, activeProject, onSelectProject, onNewProject, onToggleTheme, isDark }) => {
+    const { logout } = useAuth();
+
     return (
         <div className="w-64 bg-bg-panel/90 backdrop-blur-xl border-r border-border h-full flex flex-col transition-all duration-300">
             <div className="p-6 border-b border-border/50">
@@ -79,7 +82,7 @@ const Sidebar = ({ projects, activeProject, onSelectProject, onNewProject, onTog
                 </div>
             </div>
 
-            <div className="p-4 border-t border-border/50">
+            <div className="p-4 flex flex-col gap-2 border-t border-border/50">
                 <button
                     onClick={onToggleTheme}
                     className="w-full px-4 py-2 bg-bg-base hover:bg-bg-hover text-text-base rounded-lg border border-border transition-colors duration-200 flex items-center justify-center gap-2"
@@ -99,6 +102,15 @@ const Sidebar = ({ projects, activeProject, onSelectProject, onNewProject, onTog
                             Dark Mode
                         </>
                     )}
+                </button>
+                <button
+                    onClick={logout}
+                    className="w-full px-4 py-2 bg-danger/10 hover:bg-danger/20 text-danger rounded-lg border border-danger/20 transition-colors duration-200 flex items-center justify-center gap-2"
+                >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Logout
                 </button>
             </div>
         </div>

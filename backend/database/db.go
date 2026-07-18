@@ -49,9 +49,31 @@ func InitTestDB() {
 
 // createTables creates the necessary database tables
 func createTables() {
-	// Create workflows table first (since projects references it)
-	_, err := DB.Exec(`CREATE TABLE IF NOT EXISTS workflows (
+	// We are going to add user_id to existing tables.
+	// We will create the users table first.
+	_, err := DB.Exec(`CREATE TABLE IF NOT EXISTS users (
 		id SERIAL PRIMARY KEY,
+		email TEXT UNIQUE NOT NULL,
+		password_hash TEXT NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`)
+	if err != nil {
+		log.Fatal("Failed to create users table:", err)
+	}
+
+	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS user_settings (
+		user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+		theme TEXT DEFAULT 'system',
+		default_project_id INTEGER
+	)`)
+	if err != nil {
+		log.Fatal("Failed to create user_settings table:", err)
+	}
+
+	// Create workflows table
+	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS workflows (
+		id SERIAL PRIMARY KEY,
+		user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
 		name TEXT NOT NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	)`)
@@ -62,11 +84,11 @@ func createTables() {
 	// Create projects table
 	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS projects (
 		id SERIAL PRIMARY KEY,
+		user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
 		name TEXT NOT NULL,
 		description TEXT DEFAULT '',
-		workflow_id INTEGER,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE SET NULL
+		workflow_id INTEGER REFERENCES workflows(id) ON DELETE SET NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	)`)
 	if err != nil {
 		log.Fatal("Failed to create projects table:", err)
@@ -75,15 +97,14 @@ func createTables() {
 	// Create todos table
 	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS todos (
 		id SERIAL PRIMARY KEY,
+		user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
 		title TEXT NOT NULL,
 		content TEXT DEFAULT '',
 		completed BOOLEAN DEFAULT FALSE,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		parent_id INTEGER,
-		project_id INTEGER,
-		stage TEXT DEFAULT 'To Do',
-		FOREIGN KEY (parent_id) REFERENCES todos(id) ON DELETE CASCADE,
-		FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+		parent_id INTEGER REFERENCES todos(id) ON DELETE CASCADE,
+		project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+		stage TEXT DEFAULT 'To Do'
 	)`)
 	if err != nil {
 		log.Fatal("Failed to create todos table:", err)
@@ -92,10 +113,9 @@ func createTables() {
 	// Create workflow_stages table
 	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS workflow_stages (
 		id SERIAL PRIMARY KEY,
-		workflow_id INTEGER,
+		workflow_id INTEGER REFERENCES workflows(id) ON DELETE CASCADE,
 		name TEXT NOT NULL,
-		"order" INTEGER NOT NULL,
-		FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
+		"order" INTEGER NOT NULL
 	)`)
 	if err != nil {
 		log.Fatal("Failed to create workflow_stages table:", err)
@@ -104,14 +124,15 @@ func createTables() {
 	// Create wiki_pages table
 	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS wiki_pages (
 		id SERIAL PRIMARY KEY,
-		project_id INTEGER,
+		user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+		project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
 		category TEXT DEFAULT 'General',
 		title TEXT NOT NULL,
-		slug TEXT NOT NULL UNIQUE,
+		slug TEXT NOT NULL,
 		content TEXT DEFAULT '',
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+		UNIQUE(user_id, slug)
 	)`)
 	if err != nil {
 		log.Fatal("Failed to create wiki_pages table:", err)
@@ -120,6 +141,7 @@ func createTables() {
 	// Create icons table
 	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS icons (
 		id SERIAL PRIMARY KEY,
+		user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
 		name TEXT NOT NULL,
 		url TEXT NOT NULL,
 		folder TEXT DEFAULT 'General',
@@ -128,13 +150,11 @@ func createTables() {
 	if err != nil {
 		log.Fatal("Failed to create icons table:", err)
 	}
-	
-	// Add folder column if it doesn't exist (for existing tables)
-	_, _ = DB.Exec(`ALTER TABLE icons ADD COLUMN IF NOT EXISTS folder TEXT DEFAULT 'General'`)
 
 	// Create diagrams table
 	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS diagrams (
 		id SERIAL PRIMARY KEY,
+		user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
 		name TEXT NOT NULL,
 		diagram_type TEXT DEFAULT 'graph TD',
 		code TEXT DEFAULT '',
@@ -145,108 +165,11 @@ func createTables() {
 	if err != nil {
 		log.Fatal("Failed to create diagrams table:", err)
 	}
-
-	// Insert default data if tables are empty
-	insertDefaultData()
-}
-
-// insertDefaultData inserts default workflow, projects, and stages if empty
-func insertDefaultData() {
-	var workflowID int64
-	var projectID int64
-
-	// Check if workflows exist
-	var workflowCount int
-	err := DB.QueryRow("SELECT COUNT(*) FROM workflows").Scan(&workflowCount)
-	if err != nil {
-		log.Println("Error checking workflows:", err)
-		return
+	
+	// Ensure user_id column exists if tables were already there from previous version
+	tables := []string{"workflows", "projects", "todos", "wiki_pages", "icons", "diagrams"}
+	for _, table := range tables {
+		_, _ = DB.Exec(`ALTER TABLE ` + table + ` ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE`)
 	}
-
-	if workflowCount == 0 {
-		// Insert default workflow
-		workflowQuery := `INSERT INTO workflows (name) VALUES ($1) RETURNING id`
-		err := DB.QueryRow(workflowQuery, "Default Workflow").Scan(&workflowID)
-		if err != nil {
-			log.Println("Error inserting default workflow:", err)
-			return
-		}
-
-		// Insert default stages
-		stages := []string{"To Do", "In Progress", "Review", "Done"}
-		for i, stageName := range stages {
-			stageQuery := `INSERT INTO workflow_stages (workflow_id, name, "order") VALUES ($1, $2, $3)`
-			_, err := DB.Exec(stageQuery, workflowID, stageName, i+1)
-			if err != nil {
-				log.Println("Error inserting stage:", err)
-			}
-		}
-	} else {
-		DB.QueryRow("SELECT id FROM workflows ORDER BY id LIMIT 1").Scan(&workflowID)
-	}
-
-	// Check if projects exist
-	var projectCount int
-	err = DB.QueryRow("SELECT COUNT(*) FROM projects").Scan(&projectCount)
-	if err != nil {
-		log.Println("Error checking projects:", err)
-		return
-	}
-
-	if projectCount == 0 {
-		projectQuery := `INSERT INTO projects (name, description, workflow_id) VALUES ($1, $2, $3) RETURNING id`
-		err := DB.QueryRow(projectQuery, "General Project", "Default project for tasks", workflowID).Scan(&projectID)
-		if err != nil {
-			log.Println("Error inserting default project:", err)
-			return
-		}
-	} else {
-		DB.QueryRow("SELECT id FROM projects ORDER BY id LIMIT 1").Scan(&projectID)
-	}
-
-	// Update any todos that don't have a project
-	DB.Exec("UPDATE todos SET project_id = $1 WHERE project_id IS NULL", projectID)
-
-	// Check if todos exist
-	var todoCount int
-	err = DB.QueryRow("SELECT COUNT(*) FROM todos").Scan(&todoCount)
-	if err != nil {
-		log.Println("Error checking todos:", err)
-		return
-	}
-
-	if todoCount == 0 {
-		// Insert sample todos
-		todos := []struct {
-			title     string
-			stage     string
-			completed bool
-		}{
-			{"Research Go framework options", "To Do", false},
-			{"Design database schema", "In Progress", false},
-			{"Implement authentication", "Done", true},
-			{"Write documentation", "Review", false},
-		}
-
-		for _, todo := range todos {
-			query := `INSERT INTO todos (title, stage, completed, project_id) VALUES ($1, $2, $3, $4)`
-			_, err := DB.Exec(query, todo.title, todo.stage, todo.completed, projectID)
-			if err != nil {
-				log.Println("Error inserting sample todo:", err)
-			}
-		}
-	}
-
-	// Check if wiki pages exist
-	var wikiCount int
-	err = DB.QueryRow("SELECT COUNT(*) FROM wiki_pages").Scan(&wikiCount)
-	if err == nil && wikiCount == 0 {
-		wikiQuery := `INSERT INTO wiki_pages (project_id, category, title, slug, content) VALUES ($1, $2, $3, $4, $5)`
-		DB.Exec(wikiQuery, projectID, "General", "Welcome to the Wiki", "welcome", "# Welcome\n\nThis is the default index page for this project's wiki.\n\nYou can use markdown, tables, and math!\n\nLink to another page: [Architecture](#wiki:architecture)")
-		DB.Exec(wikiQuery, projectID, "Engineering", "Architecture Overview", "architecture", "# Architecture\n\nWe use a simple Go backend with a React frontend.")
-		
-		// General global wiki (no project)
-		wikiQueryNullProj := `INSERT INTO wiki_pages (category, title, slug, content) VALUES ($1, $2, $3, $4)`
-		DB.Exec(wikiQueryNullProj, "Guides", "Global Guide", "global-guide", "# Global Guide\n\nThis wiki page does not belong to any specific project.")
-	}
+	_, _ = DB.Exec(`ALTER TABLE icons ADD COLUMN IF NOT EXISTS folder TEXT DEFAULT 'General'`)
 }

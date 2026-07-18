@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"todo-backend/database"
+	"todo-backend/middleware"
 	"todo-backend/models"
 
 	"github.com/go-chi/chi/v5"
@@ -15,6 +16,12 @@ import (
 
 // GetWikis fetches all wiki pages for a given project, or global wikis if project_id is omitted
 func GetWikis(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	database.Mutex.RLock()
 	defer database.Mutex.RUnlock()
 
@@ -25,9 +32,9 @@ func GetWikis(w http.ResponseWriter, r *http.Request) {
 
 	if projectIDStr != "" {
 		projectID, _ := strconv.Atoi(projectIDStr)
-		rows, err = database.DB.Query(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE project_id = $1 ORDER BY category, title`, projectID)
+		rows, err = database.DB.Query(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE project_id = $1 AND user_id = $2 ORDER BY category, title`, projectID, userID)
 	} else {
-		rows, err = database.DB.Query(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE project_id IS NULL ORDER BY category, title`)
+		rows, err = database.DB.Query(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE project_id IS NULL AND user_id = $1 ORDER BY category, title`, userID)
 	}
 
 	if err != nil {
@@ -48,6 +55,7 @@ func GetWikis(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		p.UserID = userID
 		p.CreatedAt = createdAt
 		p.UpdatedAt = updatedAt
 		
@@ -65,6 +73,12 @@ func GetWikis(w http.ResponseWriter, r *http.Request) {
 
 // GetWiki gets a specific wiki page by slug
 func GetWiki(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	slug := chi.URLParam(r, "slug")
 
 	database.Mutex.RLock()
@@ -74,7 +88,7 @@ func GetWiki(w http.ResponseWriter, r *http.Request) {
 	var projectID sql.NullInt64
 	var createdAt, updatedAt time.Time
 
-	err := database.DB.QueryRow(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE slug = $1`, slug).
+	err := database.DB.QueryRow(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE slug = $1 AND user_id = $2`, slug, userID).
 		Scan(&p.ID, &projectID, &p.Category, &p.Title, &p.Slug, &p.Content, &createdAt, &updatedAt)
 		
 	if err != nil {
@@ -86,6 +100,7 @@ func GetWiki(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p.UserID = userID
 	p.CreatedAt = createdAt
 	p.UpdatedAt = updatedAt
 
@@ -100,6 +115,12 @@ func GetWiki(w http.ResponseWriter, r *http.Request) {
 
 // CreateWiki creates a new wiki page
 func CreateWiki(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var p models.WikiPage
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -110,14 +131,15 @@ func CreateWiki(w http.ResponseWriter, r *http.Request) {
 	defer database.Mutex.Unlock()
 
 	var id int64
-	query := `INSERT INTO wiki_pages (project_id, category, title, slug, content) VALUES ($1, $2, $3, $4, $5) RETURNING id`
-	err := database.DB.QueryRow(query, p.ProjectID, p.Category, p.Title, p.Slug, p.Content).Scan(&id)
+	query := `INSERT INTO wiki_pages (user_id, project_id, category, title, slug, content) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
+	err := database.DB.QueryRow(query, userID, p.ProjectID, p.Category, p.Title, p.Slug, p.Content).Scan(&id)
 	if err != nil {
 		http.Error(w, "Failed to create wiki page (slug might not be unique)", http.StatusInternalServerError)
 		return
 	}
 
 	p.ID = int(id)
+	p.UserID = userID
 	p.CreatedAt = time.Now()
 	p.UpdatedAt = p.CreatedAt
 
@@ -128,6 +150,12 @@ func CreateWiki(w http.ResponseWriter, r *http.Request) {
 
 // UpdateWiki updates a wiki page
 func UpdateWiki(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Invalid wiki ID", http.StatusBadRequest)
@@ -143,14 +171,15 @@ func UpdateWiki(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	query := `UPDATE wiki_pages SET category = $1, title = $2, slug = $3, content = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5`
-	_, err = database.DB.Exec(query, p.Category, p.Title, p.Slug, p.Content, id)
+	query := `UPDATE wiki_pages SET category = $1, title = $2, slug = $3, content = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 AND user_id = $6`
+	_, err = database.DB.Exec(query, p.Category, p.Title, p.Slug, p.Content, id, userID)
 	if err != nil {
 		http.Error(w, "Failed to update wiki page", http.StatusInternalServerError)
 		return
 	}
 
 	p.ID = id
+	p.UserID = userID
 	p.UpdatedAt = time.Now()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -159,6 +188,12 @@ func UpdateWiki(w http.ResponseWriter, r *http.Request) {
 
 // DeleteWiki deletes a wiki page
 func DeleteWiki(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Invalid wiki ID", http.StatusBadRequest)
@@ -168,7 +203,7 @@ func DeleteWiki(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	_, err = database.DB.Exec("DELETE FROM wiki_pages WHERE id = $1", id)
+	_, err = database.DB.Exec("DELETE FROM wiki_pages WHERE id = $1 AND user_id = $2", id, userID)
 	if err != nil {
 		http.Error(w, "Failed to delete wiki page", http.StatusInternalServerError)
 		return
