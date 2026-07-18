@@ -6,6 +6,7 @@ import (
 
 	"todo-backend/database"
 	"todo-backend/handlers"
+	mymiddleware "todo-backend/middleware"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -38,7 +39,7 @@ func main() {
 
 	// Protected routes
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.AuthMiddleware)
+		r.Use(mymiddleware.AuthMiddleware)
 
 		r.Get("/api/auth/me", handlers.GetMe)
 		
