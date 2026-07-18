@@ -2,9 +2,25 @@ package models
 
 import "time"
 
+// User represents an authenticated user
+type User struct {
+	ID           int       `json:"id"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"-"` // never serialize password hash
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// UserSettings represents user-specific settings
+type UserSettings struct {
+	UserID           int    `json:"user_id"`
+	Theme            string `json:"theme"`
+	DefaultProjectID *int   `json:"default_project_id,omitempty"`
+}
+
 // Project represents a project containing workflows, tasks, and wikis
 type Project struct {
 	ID          int       `json:"id"`
+	UserID      int       `json:"user_id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	WorkflowID  *int      `json:"workflow_id,omitempty"`
@@ -14,6 +30,7 @@ type Project struct {
 // WikiPage represents a single wiki document
 type WikiPage struct {
 	ID        int       `json:"id"`
+	UserID    int       `json:"user_id"`
 	ProjectID *int      `json:"project_id,omitempty"`
 	Category  string    `json:"category"`
 	Title     string    `json:"title"`
@@ -26,6 +43,7 @@ type WikiPage struct {
 // Todo represents a single todo item
 type Todo struct {
 	ID        int       `json:"id"`
+	UserID    int       `json:"user_id"`
 	Title     string    `json:"title"`
 	Content   string    `json:"content"`
 	Completed bool      `json:"completed"`
@@ -46,6 +64,7 @@ type WorkflowStage struct {
 // Workflow represents the customizable workflow configuration
 type Workflow struct {
 	ID        int             `json:"id"`
+	UserID    int             `json:"user_id"`
 	Name      string          `json:"name"`
 	Stages    []WorkflowStage `json:"stages"`
 	CreatedAt time.Time       `json:"created_at"`

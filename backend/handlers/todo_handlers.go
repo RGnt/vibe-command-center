@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"todo-backend/database"
+	"todo-backend/middleware"
 	"todo-backend/models"
 
 	"github.com/go-chi/chi/v5"
@@ -15,6 +16,12 @@ import (
 
 // GetTodos gets all top-level todos
 func GetTodos(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	database.Mutex.RLock()
 	defer database.Mutex.RUnlock()
 
@@ -26,10 +33,10 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 	if projectIDStr != "" {
 		projectID, _ := strconv.Atoi(projectIDStr)
 		rows, err = database.DB.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
-			FROM todos WHERE parent_id IS NULL AND project_id = $1 ORDER BY created_at DESC`, projectID)
+			FROM todos WHERE parent_id IS NULL AND project_id = $1 AND user_id = $2 ORDER BY created_at DESC`, projectID, userID)
 	} else {
 		rows, err = database.DB.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
-			FROM todos WHERE parent_id IS NULL ORDER BY created_at DESC`)
+			FROM todos WHERE parent_id IS NULL AND user_id = $1 ORDER BY created_at DESC`, userID)
 	}
 
 	if err != nil {
@@ -51,6 +58,7 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		todo.UserID = userID
 		todo.CreatedAt = createdAt
 
 		if parentID.Valid {
@@ -67,7 +75,7 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := range todos {
-		subtasks, err := getSubtasks(todos[i].ID)
+		subtasks, err := getSubtasks(todos[i].ID, userID)
 		if err == nil {
 			todos[i].Subtasks = subtasks
 		}
@@ -79,6 +87,12 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 
 // GetTodo gets a single todo by ID
 func GetTodo(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Invalid todo ID", http.StatusBadRequest)
@@ -94,7 +108,7 @@ func GetTodo(w http.ResponseWriter, r *http.Request) {
 	var createdAt time.Time
 
 	err = database.DB.QueryRow(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
-		FROM todos WHERE id = $1`, id).Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage)
+		FROM todos WHERE id = $1 AND user_id = $2`, id, userID).Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Todo not found", http.StatusNotFound)
@@ -104,6 +118,7 @@ func GetTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	todo.UserID = userID
 	todo.CreatedAt = createdAt
 
 	if parentID.Valid {
@@ -116,7 +131,7 @@ func GetTodo(w http.ResponseWriter, r *http.Request) {
 		todo.ProjectID = &pid
 	}
 
-	subtasks, err := getSubtasks(id)
+	subtasks, err := getSubtasks(id, userID)
 	if err == nil {
 		todo.Subtasks = subtasks
 	}
@@ -126,9 +141,9 @@ func GetTodo(w http.ResponseWriter, r *http.Request) {
 }
 
 // getSubtasks is a helper function to get subtasks
-func getSubtasks(parentID int) ([]models.Todo, error) {
+func getSubtasks(parentID int, userID int) ([]models.Todo, error) {
 	rows, err := database.DB.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
-		FROM todos WHERE parent_id = $1 ORDER BY created_at DESC`, parentID)
+		FROM todos WHERE parent_id = $1 AND user_id = $2 ORDER BY created_at DESC`, parentID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -145,6 +160,7 @@ func getSubtasks(parentID int) ([]models.Todo, error) {
 			return nil, err
 		}
 
+		todo.UserID = userID
 		todo.CreatedAt = createdAt
 		
 		if projectID.Valid {
@@ -160,6 +176,12 @@ func getSubtasks(parentID int) ([]models.Todo, error) {
 
 // CreateTodo creates a new todo
 func CreateTodo(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var todo models.Todo
 	if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -170,8 +192,8 @@ func CreateTodo(w http.ResponseWriter, r *http.Request) {
 	defer database.Mutex.Unlock()
 
 	var id int64
-	query := `INSERT INTO todos (title, content, stage, completed, project_id) VALUES ($1, $2, $3, $4, $5) RETURNING id`
-	err := database.DB.QueryRow(query, todo.Title, todo.Content, todo.Stage, todo.Completed, todo.ProjectID).Scan(&id)
+	query := `INSERT INTO todos (user_id, title, content, stage, completed, project_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
+	err := database.DB.QueryRow(query, userID, todo.Title, todo.Content, todo.Stage, todo.Completed, todo.ProjectID).Scan(&id)
 	if err != nil {
 		http.Error(w, "Failed to create todo", http.StatusInternalServerError)
 		return
@@ -189,6 +211,7 @@ func CreateTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	createdTodo.UserID = userID
 	createdTodo.CreatedAt = createdAt
 
 	if parentID.Valid {
@@ -208,6 +231,12 @@ func CreateTodo(w http.ResponseWriter, r *http.Request) {
 
 // CreateSubtask creates a subtask for a todo
 func CreateSubtask(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	parentID, err := strconv.Atoi(chi.URLParam(r, "parent_id"))
 	if err != nil {
 		http.Error(w, "Invalid parent ID", http.StatusBadRequest)
@@ -225,7 +254,7 @@ func CreateSubtask(w http.ResponseWriter, r *http.Request) {
 
 	var exists bool
 	var parentProjectID sql.NullInt64
-	err = database.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM todos WHERE id = $1), project_id FROM todos WHERE id = $2", parentID, parentID).Scan(&exists, &parentProjectID)
+	err = database.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM todos WHERE id = $1 AND user_id = $2), project_id FROM todos WHERE id = $3", parentID, userID, parentID).Scan(&exists, &parentProjectID)
 	if err != nil || !exists {
 		http.Error(w, "Parent todo not found", http.StatusNotFound)
 		return
@@ -240,8 +269,8 @@ func CreateSubtask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var id int64
-	query := `INSERT INTO todos (title, content, parent_id, stage, completed, project_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
-	err = database.DB.QueryRow(query, subtask.Title, subtask.Content, parentID, subtask.Stage, subtask.Completed, pID).Scan(&id)
+	query := `INSERT INTO todos (user_id, title, content, parent_id, stage, completed, project_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`
+	err = database.DB.QueryRow(query, userID, subtask.Title, subtask.Content, parentID, subtask.Stage, subtask.Completed, pID).Scan(&id)
 	if err != nil {
 		http.Error(w, "Failed to create subtask", http.StatusInternalServerError)
 		return
@@ -258,6 +287,7 @@ func CreateSubtask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	createdSubtask.UserID = userID
 	createdSubtask.CreatedAt = createdAt
 	
 	if projectID.Valid {
@@ -272,6 +302,12 @@ func CreateSubtask(w http.ResponseWriter, r *http.Request) {
 
 // UpdateTodo updates a todo
 func UpdateTodo(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Invalid todo ID", http.StatusBadRequest)
@@ -287,8 +323,8 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	query := `UPDATE todos SET title = $1, content = $2, completed = $3, stage = $4, project_id = $5 WHERE id = $6`
-	_, err = database.DB.Exec(query, updatedTodo.Title, updatedTodo.Content, updatedTodo.Completed, updatedTodo.Stage, updatedTodo.ProjectID, id)
+	query := `UPDATE todos SET title = $1, content = $2, completed = $3, stage = $4, project_id = $5 WHERE id = $6 AND user_id = $7`
+	_, err = database.DB.Exec(query, updatedTodo.Title, updatedTodo.Content, updatedTodo.Completed, updatedTodo.Stage, updatedTodo.ProjectID, id, userID)
 	if err != nil {
 		http.Error(w, "Failed to update todo", http.StatusInternalServerError)
 		return
@@ -300,12 +336,13 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	var createdAt time.Time
 
 	err = database.DB.QueryRow(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
-		FROM todos WHERE id = $1`, id).Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage)
+		FROM todos WHERE id = $1 AND user_id = $2`, id, userID).Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage)
 	if err != nil {
 		http.Error(w, "Failed to fetch updated todo", http.StatusInternalServerError)
 		return
 	}
 
+	todo.UserID = userID
 	todo.CreatedAt = createdAt
 
 	if parentID.Valid {
@@ -324,6 +361,12 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 
 // DeleteTodo deletes a todo
 func DeleteTodo(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Invalid todo ID", http.StatusBadRequest)
@@ -333,7 +376,7 @@ func DeleteTodo(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	_, err = database.DB.Exec("DELETE FROM todos WHERE id = $1", id)
+	_, err = database.DB.Exec("DELETE FROM todos WHERE id = $1 AND user_id = $2", id, userID)
 	if err != nil {
 		http.Error(w, "Failed to delete todo", http.StatusInternalServerError)
 		return
@@ -344,6 +387,12 @@ func DeleteTodo(w http.ResponseWriter, r *http.Request) {
 
 // ToggleTodo toggles completion status
 func ToggleTodo(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, "Invalid todo ID", http.StatusBadRequest)
@@ -354,14 +403,14 @@ func ToggleTodo(w http.ResponseWriter, r *http.Request) {
 	defer database.Mutex.Unlock()
 
 	var currentCompleted bool
-	err = database.DB.QueryRow("SELECT completed FROM todos WHERE id = $1", id).Scan(&currentCompleted)
+	err = database.DB.QueryRow("SELECT completed FROM todos WHERE id = $1 AND user_id = $2", id, userID).Scan(&currentCompleted)
 	if err != nil {
 		http.Error(w, "Todo not found", http.StatusNotFound)
 		return
 	}
 
 	newCompleted := !currentCompleted
-	_, err = database.DB.Exec("UPDATE todos SET completed = $1 WHERE id = $2", newCompleted, id)
+	_, err = database.DB.Exec("UPDATE todos SET completed = $1 WHERE id = $2 AND user_id = $3", newCompleted, id, userID)
 	if err != nil {
 		http.Error(w, "Failed to toggle todo", http.StatusInternalServerError)
 		return
@@ -379,6 +428,7 @@ func ToggleTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	todo.UserID = userID
 	todo.CreatedAt = createdAt
 
 	if parentID.Valid {
@@ -397,16 +447,18 @@ func ToggleTodo(w http.ResponseWriter, r *http.Request) {
 
 // GetTodosByStage gets todos grouped by stage
 func GetTodosByStage(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	database.Mutex.RLock()
 	defer database.Mutex.RUnlock()
-
-	var stagesStr string
-	err := database.DB.QueryRow(`SELECT STRING_AGG(name, ',' ORDER BY "order") FROM workflow_stages ws 
-		JOIN workflows w ON ws.workflow_id = w.id WHERE w.name = 'Default Workflow'`).Scan(&stagesStr)
 	
 	stages := []string{"To Do", "In Progress", "Review", "Done"}
 	
-	stageRows, err := database.DB.Query(`SELECT name FROM workflow_stages ws JOIN workflows w ON ws.workflow_id = w.id WHERE w.name = 'Default Workflow' ORDER BY "order"`)
+	stageRows, err := database.DB.Query(`SELECT name FROM workflow_stages ws JOIN workflows w ON ws.workflow_id = w.id WHERE w.user_id = $1 ORDER BY "order"`, userID)
 	if err == nil {
 		var dbStages []string
 		for stageRows.Next() {
@@ -427,7 +479,7 @@ func GetTodosByStage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := database.DB.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
-		FROM todos ORDER BY created_at DESC`)
+		FROM todos WHERE user_id = $1 ORDER BY created_at DESC`, userID)
 	if err != nil {
 		http.Error(w, "Failed to fetch todos", http.StatusInternalServerError)
 		return
@@ -446,6 +498,7 @@ func GetTodosByStage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		todo.UserID = userID
 		todo.CreatedAt = createdAt
 
 		if parentID.Valid {

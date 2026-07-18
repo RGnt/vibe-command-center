@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"net/http"
 	"todo-backend/database"
+	"todo-backend/middleware"
 	"github.com/go-chi/chi/v5"
 	"log"
 )
 
 type Diagram struct {
-	ID           int    `json:"id"`
-	Name         string `json:"name"`
+	ID          int    `json:"id"`
+	UserID      int    `json:"user_id"`
+	Name        string `json:"name"`
 	DiagramType  string `json:"diagram_type"`
 	Code         string `json:"code"`
 	Explanation  string `json:"explanation"`
@@ -19,8 +21,14 @@ type Diagram struct {
 }
 
 func GetDiagrams(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	database.Mutex.RLock()
-	rows, err := database.DB.Query(`SELECT id, name, diagram_type, code, explanation, created_at, updated_at FROM diagrams ORDER BY updated_at DESC`)
+	rows, err := database.DB.Query(`SELECT id, user_id, name, diagram_type, code, explanation, created_at, updated_at FROM diagrams WHERE user_id = $1 ORDER BY updated_at DESC`, userID)
 	database.Mutex.RUnlock()
 
 	if err != nil {
@@ -33,7 +41,7 @@ func GetDiagrams(w http.ResponseWriter, r *http.Request) {
 	var diagrams []Diagram
 	for rows.Next() {
 		var d Diagram
-		if err := rows.Scan(&d.ID, &d.Name, &d.DiagramType, &d.Code, &d.Explanation, &d.CreatedAt, &d.UpdatedAt); err != nil {
+		if err := rows.Scan(&d.ID, &d.UserID, &d.Name, &d.DiagramType, &d.Code, &d.Explanation, &d.CreatedAt, &d.UpdatedAt); err != nil {
 			continue
 		}
 		diagrams = append(diagrams, d)
@@ -44,12 +52,18 @@ func GetDiagrams(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetDiagram(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id := chi.URLParam(r, "id")
 
 	database.Mutex.RLock()
 	var d Diagram
-	err := database.DB.QueryRow(`SELECT id, name, diagram_type, code, explanation, created_at, updated_at FROM diagrams WHERE id = $1`, id).
-		Scan(&d.ID, &d.Name, &d.DiagramType, &d.Code, &d.Explanation, &d.CreatedAt, &d.UpdatedAt)
+	err := database.DB.QueryRow(`SELECT id, user_id, name, diagram_type, code, explanation, created_at, updated_at FROM diagrams WHERE id = $1 AND user_id = $2`, id, userID).
+		Scan(&d.ID, &d.UserID, &d.Name, &d.DiagramType, &d.Code, &d.Explanation, &d.CreatedAt, &d.UpdatedAt)
 	database.Mutex.RUnlock()
 
 	if err != nil {
@@ -62,6 +76,12 @@ func GetDiagram(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateDiagram(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var req Diagram
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
@@ -70,8 +90,8 @@ func CreateDiagram(w http.ResponseWriter, r *http.Request) {
 
 	database.Mutex.Lock()
 	err := database.DB.QueryRow(
-		`INSERT INTO diagrams (name, diagram_type, code, explanation) VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at`,
-		req.Name, req.DiagramType, req.Code, req.Explanation).
+		`INSERT INTO diagrams (user_id, name, diagram_type, code, explanation) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at, updated_at`,
+		userID, req.Name, req.DiagramType, req.Code, req.Explanation).
 		Scan(&req.ID, &req.CreatedAt, &req.UpdatedAt)
 	database.Mutex.Unlock()
 
@@ -80,11 +100,18 @@ func CreateDiagram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.UserID = userID
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(req)
 }
 
 func UpdateDiagram(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id := chi.URLParam(r, "id")
 	var req Diagram
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -94,8 +121,8 @@ func UpdateDiagram(w http.ResponseWriter, r *http.Request) {
 
 	database.Mutex.Lock()
 	err := database.DB.QueryRow(
-		`UPDATE diagrams SET name = $1, diagram_type = $2, code = $3, explanation = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 RETURNING updated_at`,
-		req.Name, req.DiagramType, req.Code, req.Explanation, id).
+		`UPDATE diagrams SET name = $1, diagram_type = $2, code = $3, explanation = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 AND user_id = $6 RETURNING updated_at`,
+		req.Name, req.DiagramType, req.Code, req.Explanation, id, userID).
 		Scan(&req.UpdatedAt)
 	database.Mutex.Unlock()
 
@@ -105,15 +132,22 @@ func UpdateDiagram(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	req.ID = 0 // not strictly necessary, but good to know
+	req.UserID = userID
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(req)
 }
 
 func DeleteDiagram(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id := chi.URLParam(r, "id")
 
 	database.Mutex.Lock()
-	_, err := database.DB.Exec(`DELETE FROM diagrams WHERE id = $1`, id)
+	_, err := database.DB.Exec(`DELETE FROM diagrams WHERE id = $1 AND user_id = $2`, id, userID)
 	database.Mutex.Unlock()
 
 	if err != nil {
