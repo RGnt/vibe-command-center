@@ -1,0 +1,283 @@
+openapi: 3.0.0
+info:
+  title: Todo Application API
+  version: 1.0.0
+  description: API for managing todos and customizable workflows.
+servers:
+  - url: http://localhost:8080/api
+paths:
+  /todos:
+    get:
+      summary: Get all top-level todos
+      responses:
+        '200':
+          description: A list of todos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Todo'
+    post:
+      summary: Create a new todo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TodoInput'
+      responses:
+        '201':
+          description: The created todo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+  /todos/{id}:
+    get:
+      summary: Get a specific todo by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: The todo object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+        '404':
+          description: Todo not found
+    put:
+      summary: Update a todo
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TodoInput'
+      responses:
+        '200':
+          description: The updated todo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+    delete:
+      summary: Delete a todo
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Todo deleted successfully
+  /todos/{id}/toggle:
+    patch:
+      summary: Toggle completion status of a todo
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: The updated todo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+  /todos/{parent_id}/subtasks:
+    post:
+      summary: Create a subtask under a specific todo
+      parameters:
+        - in: path
+          name: parent_id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TodoInput'
+      responses:
+        '201':
+          description: The created subtask
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Todo'
+  /todos/stage:
+    get:
+      summary: Get all todos grouped by workflow stage
+      responses:
+        '200':
+          description: Todos grouped by stage
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    todos:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Todo'
+  /workflows:
+    get:
+      summary: Get all workflows
+      responses:
+        '200':
+          description: A list of workflows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Workflow'
+    post:
+      summary: Create a new workflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowInput'
+      responses:
+        '201':
+          description: The created workflow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+  /workflows/{id}:
+    put:
+      summary: Update a workflow
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowInput'
+      responses:
+        '200':
+          description: The updated workflow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+    delete:
+      summary: Delete a workflow
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Workflow deleted successfully
+
+components:
+  schemas:
+    TodoInput:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        completed:
+          type: boolean
+          default: false
+        stage:
+          type: string
+          default: 'To Do'
+    Todo:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        completed:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        parent_id:
+          type: integer
+        stage:
+          type: string
+        subtasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Todo'
+    WorkflowStageInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+    WorkflowStage:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        order:
+          type: integer
+    WorkflowInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowStageInput'
+    Workflow:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkflowStage'
