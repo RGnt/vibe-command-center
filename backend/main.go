@@ -4,9 +4,13 @@ import (
 	"log"
 	"net/http"
 
+	"os"
+
 	"todo-backend/database"
 	"todo-backend/handlers"
 	mymiddleware "todo-backend/middleware"
+	"todo-backend/repository"
+	"todo-backend/service"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -17,6 +21,17 @@ func main() {
 	// Initialize database
 	database.InitDB()
 	defer database.DB.Close()
+
+	// Initialize dependencies
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "my_super_secret_key_change_me_in_prod" // Default for development
+	}
+
+	userRepo := repository.NewPostgresUserRepository(database.DB)
+	authService := service.NewAuthService(userRepo, []byte(jwtSecret))
+	authHandler := handlers.NewAuthHandler(authService)
+	authMiddleware := mymiddleware.NewAuthMiddlewareProvider([]byte(jwtSecret))
 
 	r := chi.NewRouter()
 
@@ -34,14 +49,14 @@ func main() {
 	}))
 
 	// Public routes
-	r.Post("/api/auth/register", handlers.Register)
-	r.Post("/api/auth/login", handlers.Login)
+	r.Post("/api/auth/register", authHandler.Register)
+	r.Post("/api/auth/login", authHandler.Login)
 
 	// Protected routes
 	r.Group(func(r chi.Router) {
-		r.Use(mymiddleware.AuthMiddleware)
+		r.Use(authMiddleware.Middleware)
 
-		r.Get("/api/auth/me", handlers.GetMe)
+		r.Get("/api/auth/me", authHandler.GetMe)
 		
 		r.Get("/api/user/settings", handlers.GetUserSettings)
 		r.Put("/api/user/settings", handlers.UpdateUserSettings)

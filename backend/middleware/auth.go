@@ -8,8 +8,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var JwtKey = []byte("my_super_secret_key_change_me_in_prod") // Should be in env var ideally
-
 type Claims struct {
 	UserID int `json:"user_id"`
 	jwt.RegisteredClaims
@@ -20,8 +18,17 @@ type UserContextKey string
 
 const UserIDKey UserContextKey = "user_id"
 
-// AuthMiddleware validates the JWT token and extracts the user ID
-func AuthMiddleware(next http.Handler) http.Handler {
+// AuthMiddlewareProvider holds dependencies for the auth middleware
+type AuthMiddlewareProvider struct {
+	jwtKey []byte
+}
+
+func NewAuthMiddlewareProvider(jwtKey []byte) *AuthMiddlewareProvider {
+	return &AuthMiddlewareProvider{jwtKey: jwtKey}
+}
+
+// Middleware validates the JWT token and extracts the user ID
+func (m *AuthMiddlewareProvider) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
@@ -38,7 +45,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		claims := &Claims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return JwtKey, nil
+			return m.jwtKey, nil
 		})
 
 		if err != nil || !token.Valid {
