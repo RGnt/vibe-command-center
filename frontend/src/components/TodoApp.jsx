@@ -219,6 +219,27 @@ const TodoApp = () => {
                     }
                 }}
                 onNewProject={() => setShowProjectModal(true)}
+                onImportProject={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    try {
+                        const text = await file.text();
+                        const payload = JSON.parse(text);
+                        const response = await fetch('/api/projects/import', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload),
+                        });
+                        if (!response.ok) throw new Error('Failed to import project');
+                        const newProject = await response.json();
+                        setProjects([newProject, ...projects]);
+                        setActiveProject(newProject);
+                        setActiveTab('board');
+                    } catch (err) {
+                        setError(err.message);
+                    }
+                    e.target.value = ''; // Reset input
+                }}
                 onToggleTheme={toggleTheme}
                 isDark={theme === 'dark'}
             />
@@ -235,10 +256,39 @@ const TodoApp = () => {
                 ) : activeProject ? (
                     <>
                         <header className="px-8 py-4 flex flex-col shrink-0 border-b border-border/40">
-                            <h2 className="text-3xl font-bold text-text-base">{activeProject.name}</h2>
-                            {activeProject.description && (
-                                <p className="text-text-muted mt-1 text-sm">{activeProject.description}</p>
-                            )}
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h2 className="text-3xl font-bold text-text-base">{activeProject.name}</h2>
+                                    {activeProject.description && (
+                                        <p className="text-text-muted mt-1 text-sm">{activeProject.description}</p>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const response = await fetch(`/api/projects/${activeProject.id}/export`);
+                                            if (!response.ok) throw new Error('Failed to export project');
+                                            const blob = await response.blob();
+                                            const url = window.URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            a.download = `${activeProject.name.replace(/\s+/g, '_')}_export.json`;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            window.URL.revokeObjectURL(url);
+                                            document.body.removeChild(a);
+                                        } catch (err) {
+                                            setError(err.message);
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-bg-panel border border-border rounded-lg text-sm font-semibold text-text-base hover:bg-bg-hover transition-colors flex items-center gap-2 shadow-sm"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    Export Project
+                                </button>
+                            </div>
                             
                             <div className="flex gap-4 mt-4">
                                 <button 

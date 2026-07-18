@@ -8,6 +8,7 @@ import (
 
 type WikiRepository interface {
 	GetAllByUserID(userID int) ([]models.WikiPage, error)
+	GetAllByProjectID(userID int, projectID int) ([]models.WikiPage, error)
 	GetBySlugAndUserID(slug string, userID int) (models.WikiPage, error)
 	Create(wiki models.WikiPage) (models.WikiPage, error)
 	Update(id int, wiki models.WikiPage) (models.WikiPage, error)

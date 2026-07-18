@@ -40,10 +40,6 @@ func TestMain(m *testing.M) {
 	userService := service.NewUserService(userSettingsRepo)
 	userHandler = NewUserHandler(userService)
 
-	projectRepo := repository.NewProjectRepository(database.DB)
-	projectService := service.NewProjectService(projectRepo)
-	projectHandler = NewProjectHandler(projectService)
-
 	workflowRepo := repository.NewWorkflowRepository(database.DB)
 	workflowService := service.NewWorkflowService(workflowRepo)
 	workflowHandler = NewWorkflowHandler(workflowService)
@@ -55,6 +51,10 @@ func TestMain(m *testing.M) {
 	wikiRepo := repository.NewWikiRepository(database.DB)
 	wikiService := service.NewWikiService(wikiRepo)
 	wikiHandler = NewWikiHandler(wikiService)
+
+	projectRepo := repository.NewProjectRepository(database.DB)
+	projectService := service.NewProjectService(projectRepo, todoRepo, wikiRepo, workflowRepo)
+	projectHandler = NewProjectHandler(projectService)
 
 	iconRepo := repository.NewIconRepository(database.DB)
 	iconService := service.NewIconService(iconRepo)

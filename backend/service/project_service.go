@@ -11,15 +11,28 @@ type ProjectService interface {
 	CreateProject(userID int, project models.Project) (models.Project, error)
 	UpdateProject(id, userID int, project models.Project) (models.Project, error)
 	DeleteProject(id, userID int) error
+	ExportProject(id, userID int) (models.ProjectExportPayload, error)
+	ImportProject(userID int, payload models.ProjectExportPayload) (models.Project, error)
 }
 
 type projectService struct {
-	projectRepo repository.ProjectRepository
+	projectRepo  repository.ProjectRepository
+	todoRepo     repository.TodoRepository
+	wikiRepo     repository.WikiRepository
+	workflowRepo repository.WorkflowRepository
 }
 
-func NewProjectService(projectRepo repository.ProjectRepository) ProjectService {
+func NewProjectService(
+	projectRepo repository.ProjectRepository,
+	todoRepo repository.TodoRepository,
+	wikiRepo repository.WikiRepository,
+	workflowRepo repository.WorkflowRepository,
+) ProjectService {
 	return &projectService{
-		projectRepo: projectRepo,
+		projectRepo:  projectRepo,
+		todoRepo:     todoRepo,
+		wikiRepo:     wikiRepo,
+		workflowRepo: workflowRepo,
 	}
 }
 

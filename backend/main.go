@@ -37,10 +37,6 @@ func main() {
 	userService := service.NewUserService(userSettingsRepo)
 	userHandler := handlers.NewUserHandler(userService)
 
-	projectRepo := repository.NewProjectRepository(database.DB)
-	projectService := service.NewProjectService(projectRepo)
-	projectHandler := handlers.NewProjectHandler(projectService)
-
 	workflowRepo := repository.NewWorkflowRepository(database.DB)
 	workflowService := service.NewWorkflowService(workflowRepo)
 	workflowHandler := handlers.NewWorkflowHandler(workflowService)
@@ -49,6 +45,14 @@ func main() {
 	todoService := service.NewTodoService(todoRepo)
 	todoHandler := handlers.NewTodoHandler(todoService)
 
+	wikiRepo := repository.NewWikiRepository(database.DB)
+	wikiService := service.NewWikiService(wikiRepo)
+	wikiHandler := handlers.NewWikiHandler(wikiService)
+
+	projectRepo := repository.NewProjectRepository(database.DB)
+	projectService := service.NewProjectService(projectRepo, todoRepo, wikiRepo, workflowRepo)
+	projectHandler := handlers.NewProjectHandler(projectService)
+
 	diagramRepo := repository.NewDiagramRepository(database.DB)
 	diagramService := service.NewDiagramService(diagramRepo)
 	diagramHandler := handlers.NewDiagramHandler(diagramService)
@@ -56,10 +60,6 @@ func main() {
 	iconRepo := repository.NewIconRepository(database.DB)
 	iconService := service.NewIconService(iconRepo)
 	iconHandler := handlers.NewIconHandler(iconService)
-
-	wikiRepo := repository.NewWikiRepository(database.DB)
-	wikiService := service.NewWikiService(wikiRepo)
-	wikiHandler := handlers.NewWikiHandler(wikiService)
 
 	uploadHandler := handlers.NewUploadHandler(iconService)
 
@@ -110,6 +110,8 @@ func main() {
 		// Project routes
 		r.Get("/api/projects", projectHandler.GetProjects)
 		r.Get("/api/projects/{id}", projectHandler.GetProject)
+		r.Get("/api/projects/{id}/export", projectHandler.ExportProject)
+		r.Post("/api/projects/import", projectHandler.ImportProject)
 		r.Post("/api/projects", projectHandler.CreateProject)
 		r.Put("/api/projects/{id}", projectHandler.UpdateProject)
 		r.Delete("/api/projects/{id}", projectHandler.DeleteProject)

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-const Sidebar = ({ projects, activeProject, onSelectProject, onNewProject, onToggleTheme, isDark }) => {
+const Sidebar = ({ projects, activeProject, onSelectProject, onNewProject, onImportProject, onToggleTheme, isDark }) => {
     const { logout } = useAuth();
 
     return (
@@ -79,6 +79,19 @@ const Sidebar = ({ projects, activeProject, onSelectProject, onNewProject, onTog
                     </svg>
                     <span>New Project</span>
                 </button>
+
+                <label className="w-full text-left px-3 py-2.5 mt-2 rounded-lg flex items-center gap-3 text-text-muted hover:bg-bg-hover hover:text-text-base transition-all duration-200 border border-dashed border-border/60 cursor-pointer">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span>Import Project</span>
+                    <input 
+                        type="file" 
+                        accept=".json" 
+                        className="hidden" 
+                        onChange={onImportProject}
+                    />
+                </label>
                 </div>
             </div>
 

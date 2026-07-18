@@ -1,0 +1,235 @@
+{
+  "project": {
+    "name": "KanbanX Documentation Hub",
+    "description": "The complete documentation and architectural specifications for the KanbanX application."
+  },
+  "workflow": {
+    "name": "Documentation Workflow",
+    "stages": [
+      {
+        "name": "To Do",
+        "order": 1
+      },
+      {
+        "name": "In Progress",
+        "order": 2
+      },
+      {
+        "name": "Review",
+        "order": 3
+      },
+      {
+        "name": "Done",
+        "order": 4
+      }
+    ]
+  },
+  "todos": [
+    {
+      "title": "Write README.md",
+      "content": "Create the initial README file for the project.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Document general_structure",
+      "content": "Create architecture documentation for general_structure",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Write ADR for 001-go-chi-router",
+      "content": "Document the architectural decision record.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Write ADR for 002-postgresql-sql",
+      "content": "Document the architectural decision record.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Write ADR for 003-react-vite",
+      "content": "Document the architectural decision record.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Write ADR for 004-playwright-e2e",
+      "content": "Document the architectural decision record.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Write ADR for 005-jwt-authentication",
+      "content": "Document the architectural decision record.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Write spec for frontend_components",
+      "content": "Document the software specification.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Write spec for models",
+      "content": "Document the software specification.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Write spec for routes",
+      "content": "Document the software specification.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Write spec for services",
+      "content": "Document the software specification.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Define BDD feature for auth",
+      "content": "Write the Gherkin feature spec.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Define BDD feature for diagrams_icons",
+      "content": "Write the Gherkin feature spec.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Define BDD feature for projects",
+      "content": "Write the Gherkin feature spec.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Define BDD feature for todos",
+      "content": "Write the Gherkin feature spec.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Define BDD feature for wikis",
+      "content": "Write the Gherkin feature spec.",
+      "completed": true,
+      "stage": "Done"
+    },
+    {
+      "title": "Define BDD feature for workflows",
+      "content": "Write the Gherkin feature spec.",
+      "completed": true,
+      "stage": "Done"
+    }
+  ],
+  "wikis": [
+    {
+      "category": "Documentation",
+      "title": "README",
+      "slug": "readme",
+      "content": "# KanbanX\n\nKanbanX is a comprehensive project management and workflow organization tool designed to streamline your development and personal tasks. It features a modern, responsive UI built with React, and a robust backend built with Go and PostgreSQL.\n\n## Features\n\n- **Authentication**: Secure JWT-based user authentication.\n- **Project Management**: Create and manage multiple projects and workspaces.\n- **Kanban Board**: Highly customizable kanban boards with drag-and-drop functionality for managing tasks and subtasks.\n- **Custom Workflows**: Define custom workflow stages for your projects to match your team's specific needs.\n- **Integrated Wiki**: Built-in Markdown-based wiki for project documentation, architecture notes, and general guides.\n- **Diagrams**: Integrated diagram creation and visualization directly within your workspace.\n- **File Uploads \u0026 Icons**: Manage custom icons and upload attachments to enrich your workspace.\n\n## Technology Stack\n\n### Frontend\n- React (Vite)\n- Tailwind CSS\n- Context API for state management\n- Drag and Drop interfaces\n\n### Backend\n- Go (Golang)\n- `go-chi` router\n- JWT for authentication\n- PostgreSQL with `pgvector` and `AGE` extensions\n\n## Prerequisites\n\nTo run this application, you must have Docker and Docker Compose installed on your system.\n\n## Running the Application\n\n### Production / Development Mode\nYou can spin up the application using Docker Compose. The `docker-compose.yml` provides a full environment including the frontend, backend, and PostgreSQL database.\n\n```bash\ndocker compose up -d --build\n```\nOnce the containers are running:\n- **Frontend** is available at: `http://localhost:8080` (or `http://localhost` depending on your Nginx configuration)\n- **Backend API** is internally routed via the frontend proxy at `/api/`\n\n### Running the End-to-End Test Suite\n\nKanbanX includes a comprehensive End-to-End (E2E) testing suite built with Playwright. The E2E tests spin up an isolated test environment using `docker-compose.test.yml`.\n\n1. Navigate to the `e2e` directory:\n   ```bash\n   cd e2e\n   ```\n2. Install Playwright dependencies (if running for the first time):\n   ```bash\n   npm install\n   npx playwright install\n   ```\n3. Run the test suite:\n   ```bash\n   npx playwright test\n   ```\n   *Note: This command will automatically build the test containers, run the Go backend tests, and then execute the Playwright UI tests against the isolated environment.*\n\n## Project Structure\n\n- `/frontend`: React application, UI components, and Vite configuration.\n- `/backend`: Go application, REST API handlers, business logic, and database repositories.\n- `/e2e`: Playwright test suite and test infrastructure configuration.\n- `/documentation`: Feature specifications, system architecture, and API documentation.\n\n## User Interface\n\nKanbanX utilizes a sleek \"Glassmorphism\" design with a dark mode color palette tailored for developers and power users. Micro-animations and responsive layouts ensure a smooth experience across different devices.\n\n## API Documentation\nThe application features a RESTful API. For detailed API endpoints and request/response schemas, refer to the documentation in the `/documentation` directory or browse the handler definitions in `/backend/handlers`.\n"
+    },
+    {
+      "category": "Architecture",
+      "title": "general_structure",
+      "slug": "architecture-general_structure",
+      "content": "# General Application Architecture\n\nKanbanX is structured as a modernized decoupled client-server architecture.\n\n## Overview\n\nThe application utilizes three main containers running in Docker:\n1. **Frontend**: An Nginx container serving a built Vite/React static application.\n2. **Backend**: A compiled Go HTTP server utilizing `go-chi` for routing.\n3. **Database**: A PostgreSQL database container enriched with `pgvector` and `AGE` graph extensions.\n\n## Communication Pattern\nThe Client (React) issues RESTful HTTP calls. \nTo bypass CORS complexity and unify the service layer, Nginx on the Frontend container acts as a reverse proxy for the backend API.\n- Any request hitting `http://{frontend}/api/*` is seamlessly proxied to `http://backend:8080/*`.\n\n## Backend Architecture Pattern\nThe Go backend strictly adheres to a three-tier layered architecture:\n1. **Handlers (Controllers)**: Sits at the edge. Parses JSON requests, manages HTTP status codes, reads context (e.g., JWT credentials), and calls services.\n2. **Services (Business Logic)**: Defines the core algorithms. Encrypts passwords, creates initial default data, handles logical validations, and coordinates repository calls.\n3. **Repositories (Data Access)**: Isolates SQL. Executes transactions and builds safe queries via standard `database/sql`. Provides interfaces to make mocking simple.\n\n## Security \u0026 State\nState is ephemeral. \n- The backend relies entirely on **stateless JWT tokens** passed via the `Authorization: Bearer \u003ctoken\u003e` header. \n- Each request parses this token, and middleware (`AuthMiddleware`) rejects invalid or expired access directly, extracting the `user_id` into the request context.\n- No session affinity is required.\n\n## Testing Architecture\nTests are layered:\n1. **Integration/Backend Unit Tests**: Written in Go standard `testing` framework utilizing the test database, ensuring route-level inputs hit database persistence correctly.\n2. **E2E UI Tests**: Playwright scripts that build ephemeral, completely sandboxed instances of the three containers, simulating raw user clickpaths.\n"
+    },
+    {
+      "category": "Architecture",
+      "title": "ADR: 001-go-chi-router",
+      "slug": "adr-001-go-chi-router",
+      "content": "# ADR 001: Go and Chi for Backend Services\n\n## Status\nAccepted\n\n## Context\nWe need a performant backend language to build RESTful API services capable of supporting concurrent traffic without memory bloat. Additionally, we need a router to handle parameterized URLs and middleware chains effectively.\n\n## Decision\nWe chose **Go (Golang)** as the primary backend language.\nFor routing, we chose **go-chi/chi**.\n\n## Rationale\n- **Performance**: Go compiles to static binaries and provides exceptional concurrency via goroutines out of the box.\n- **Simplicity**: Unlike full-blown frameworks (like NestJS or Spring), Go's standard library combined with `go-chi` is highly idiomatic. \n- **Chi vs Gin/Fiber**: `go-chi` leverages the standard `http.Handler` interfaces, meaning zero lock-in to proprietary context types. It remains extremely lightweight while supporting nested routing and custom middleware natively.\n\n## Consequences\n- Developers must manually manage dependency injection and write boiler-plate JSON marshal/unmarshal logic, rather than relying on framework magic.\n- Integration tests are simple and don't require heavy framework servers.\n"
+    },
+    {
+      "category": "Architecture",
+      "title": "ADR: 002-postgresql-sql",
+      "slug": "adr-002-postgresql-sql",
+      "content": "# ADR 002: PostgreSQL and database/sql\n\n## Status\nAccepted\n\n## Context\nWe need a robust, relational database to guarantee ACID compliance for our project structuring and kanban board logic.\nAdditionally, we need a way to interact with the database from our Go backend.\n\n## Decision\nWe chose **PostgreSQL** as our primary datastore. We also configured the Docker container to build with `pgvector` and Apache `AGE` to future-proof the application for semantic search and graph relationships.\nFor Go integration, we chose the standard library **database/sql** using the `pq` driver, eschewing heavy ORMs like GORM.\n\n## Rationale\n- **PostgreSQL**: Industry standard, incredibly reliable, and handles JSON columns which is useful for storing arbitrary settings or diagram payloads.\n- **Extensions**: Adding vector and graph capabilities immediately prevents needing secondary databases if the application scale requires AI search or graph-traversal of linked notes.\n- **Raw SQL (`database/sql`)**: \n  - ORMs add cognitive overhead and obfuscate query performance.\n  - By writing raw SQL within Repository structs, we retain 100% control over indexing, query execution paths, and transactional locking.\n\n## Consequences\n- Requires manual schema management and structural querying.\n- Scanning query results into structs requires explicit boilerplate.\n"
+    },
+    {
+      "category": "Architecture",
+      "title": "ADR: 003-react-vite",
+      "slug": "adr-003-react-vite",
+      "content": "# ADR 003: React and Vite for Frontend\n\n## Status\nAccepted\n\n## Context\nWe need a reactive frontend to support rich, interactive drag-and-drop kanban boards, diagram editing, and single-page navigation without full page reloads.\n\n## Decision\nWe chose **React** as our UI library, scaffolded and built using **Vite**.\n\n## Rationale\n- **React**: Provides a vast ecosystem (e.g. `react-beautiful-dnd`, `lucide-react`) and components that map directly to application state.\n- **Vite**: Replaces Create-React-App or Webpack. Provides near-instant Hot Module Replacement (HMR) during development and heavily optimizes ES modules during build.\n- **Styling**: Tailwind CSS is used alongside React. This prevents CSS scoping issues and enables rapid layout iterations for our premium Glassmorphism aesthetic.\n\n## Consequences\n- Requires Javascript enabled on the client.\n- The build step produces a static artifact that needs a lightweight web server (Nginx) for production.\n"
+    },
+    {
+      "category": "Architecture",
+      "title": "ADR: 004-playwright-e2e",
+      "slug": "adr-004-playwright-e2e",
+      "content": "# ADR 004: Playwright for End-to-End Testing\n\n## Status\nAccepted\n\n## Context\nTesting UI-heavy applications (drag and drop, complex state transitions) is brittle when using solely DOM-based component testing (like Jest/React Testing Library). We need a tool to run the application exactly as a user sees it in a real browser.\n\n## Decision\nWe chose **Playwright** as our End-to-End (E2E) testing framework.\n\n## Rationale\n- **Isolation**: Playwright supports browser contexts, ensuring tests don't pollute each other's cookies or localStorage.\n- **Speed**: Capable of parallel test execution out-of-the-box.\n- **Resilience**: Features automatic waiting (e.g. `toBeVisible()`), heavily reducing the need for arbitrary `sleep()` calls which cause flaky tests.\n- **Docker Integration**: Our suite boots up a completely fresh, isolated set of backend and database containers before running tests against them, guaranteeing that the test data is clean and isolated from development data.\n\n## Consequences\n- Requires a Node environment to run tests, even if the backend is Go.\n- E2E tests are slower than unit tests, requiring them to be run separately via `docker-compose.test.yml`.\n"
+    },
+    {
+      "category": "Architecture",
+      "title": "ADR: 005-jwt-authentication",
+      "slug": "adr-005-jwt-authentication",
+      "content": "# ADR 005: JWT (JSON Web Tokens) for Authentication\n\n## Status\nAccepted\n\n## Context\nWe need a method to authenticate users, restrict API access, and uniquely identify users across API requests without maintaining expensive server-side session state.\n\n## Decision\nWe chose **Standard JWT (JSON Web Tokens)** managed manually via the `golang-jwt/jwt` library.\n\n## Rationale\n- **Stateless**: Tokens carry all necessary context (`user_id`, `exp`) cryptographically signed via `HS256`. The server does not need to perform a database lookup merely to verify session validity.\n- **Decoupled**: Works perfectly in an architecture where the frontend (React) and backend (Go API) are strictly separated. The React app simply stores the token and attaches it to the `Authorization: Bearer` header.\n- **Simplicity**: Building it natively allowed us to bypass the complexity or external dependencies of 3rd party providers (e.g. Auth0, Better-auth) while keeping the database schema fully under our control.\n\n## Consequences\n- JWTs cannot easily be invalidated server-side before their expiration time without implementing a token blocklist. We accepted this trade-off by keeping expiration times reasonable (1 week) and prioritizing architectural simplicity.\n- The React application is responsible for securely storing the token (currently in memory / localStorage).\n"
+    },
+    {
+      "category": "Specifications",
+      "title": "frontend_components",
+      "slug": "specs-frontend_components",
+      "content": "# Frontend Component Architecture\n\nThe frontend is a single-page application built with React and Vite, using Tailwind CSS for sophisticated, dark-themed Glassmorphism styling.\n\n## High-Level Structure\n- `App.jsx`: The root component. Handles conditional rendering based on authentication state.\n- `main.jsx`: Bootstraps the React DOM.\n\n## Context Providers\n- `AuthContext.jsx`: Intercepts API requests to inject the Bearer token. Exposes user state, login, and registration methods globally.\n\n## Core Feature Components\n\n### Authentication\n- `Login.jsx`: Form interface allowing user toggle between Registration and Sign In. Emits to `AuthContext`.\n\n### Layout \u0026 Global UI\n- `TodoApp.jsx`: The primary dashboard container. Houses the `Sidebar`, `Header`, and current view states.\n- `Sidebar`: Navigation rail switching between Projects, Workflows, Wiki, Icons, and Diagrams.\n- `Header`: Contextual breadcrumbs and global actions based on the current view.\n\n### Kanban \u0026 Projects\n- `ProjectsView`: Lists workspaces.\n- `WorkflowsView`: Manages columns and logic for customizable boards.\n- `KanbanBoard`: Core drag-and-drop UI component mapping Todos into Workflow stages. Provides inline editing, moving, and subtask generation.\n\n### Wiki Integration\n- `WikiView`: Renders markdown content dynamically using `react-markdown` or basic pre-formatted parsing. Provides an editor mode to alter raw markdown.\n\n### Diagrams \u0026 Whiteboards\n- `DiagramsView`: A dedicated pane for managing and saving graph/node diagram structures.\n\n### Resources\n- `IconsView`: Grid interface allowing users to upload (via multipart) or paste raw SVG code, structured into custom folders.\n\n## Theming \u0026 Styling\n- Pure utility classes are preferred using Tailwind CSS.\n- **Glassmorphism**: Modals, forms, and cards use `backdrop-blur-xl`, semi-transparent backgrounds (`bg-[#1f2335]/80`), and distinct box shadows.\n- Micro-interactions (e.g. `hover:-translate-y-0.5`, `transition-all duration-200`) are applied universally to buttons and interactive elements for a premium feel.\n"
+    },
+    {
+      "category": "Specifications",
+      "title": "models",
+      "slug": "specs-models",
+      "content": "# Backend Models Specification\n\nThe system uses standard Go structs to model the database and core business entities. All models are defined in `backend/models/models.go`.\n\n## Core Entities\n\n### User\nRepresents an authenticated system user.\n- **Fields**: `ID`, `Email`, `CreatedAt`\n- **Purpose**: Tracks identity and timestamp for when the user joined.\n\n### UserSettings\nRepresents application-level settings tailored to a user.\n- **Fields**: `UserID`, `Theme` (default 'system'), `DefaultProjectID`\n- **Purpose**: Stores preferences such as UI theme and the primary project space they land on.\n\n### Project\nA container for workflows, todos, wikis, and other resources.\n- **Fields**: `ID`, `UserID`, `Name`, `Description`, `WorkflowID`, `CreatedAt`\n- **Purpose**: Groups tasks and documentation under specific scopes.\n\n### Workflow \u0026 WorkflowStage\nDefines a custom kanban board layout.\n- **Workflow**: `ID`, `UserID`, `Name`, `CreatedAt`\n- **WorkflowStage**: `ID`, `WorkflowID`, `Name`, `Order`\n- **Purpose**: Allows users to customize the stages of task progression (e.g., \"To Do\", \"In Progress\", \"Done\").\n\n### Todo\nA task to be completed.\n- **Fields**: `ID`, `UserID`, `ProjectID`, `Title`, `Description`, `StageID`, `Order`, `IsCompleted`, `CreatedAt`, `UpdatedAt`\n- **Purpose**: Tracks work items within projects, associated with specific workflow stages.\n\n### Subtask\nSmaller chunks of work belonging to a Todo.\n- **Fields**: `ID`, `TodoID`, `Title`, `IsCompleted`\n- **Purpose**: Granular task completion tracking.\n\n### WikiPage\nA markdown-based documentation page.\n- **Fields**: `ID`, `UserID`, `ProjectID`, `Category`, `Title`, `Slug`, `Content`, `CreatedAt`, `UpdatedAt`\n- **Purpose**: Provides rich-text documentation capabilities tied to projects.\n\n### Diagram\nA vector/graph representation created within the app.\n- **Fields**: `ID`, `UserID`, `ProjectID`, `Name`, `Content`, `CreatedAt`, `UpdatedAt`\n- **Purpose**: Stores raw diagram representations (e.g., JSON or XML schemas) for in-app rendering.\n\n### Icon\nA custom icon or graphical asset uploaded by the user.\n- **Fields**: `ID`, `UserID`, `Folder`, `Name`, `Content`, `CreatedAt`\n- **Purpose**: Stores SVG content or image URLs grouped by user-defined folders.\n"
+    },
+    {
+      "category": "Specifications",
+      "title": "routes",
+      "slug": "specs-routes",
+      "content": "# API Routes Specification\n\nAll routes are defined via `go-chi` and routed from `backend/main.go` using a central middleware stack, including `AuthMiddleware` for JWT-based endpoint protection.\n\n## Authentication (`/api/auth`)\n- `POST /register`: Accepts `email` and `password`. Returns JWT.\n- `POST /login`: Accepts `email` and `password`. Returns JWT.\n- `GET /me`: Returns details for the authenticated user.\n\n## User Settings (`/api/user`)\n- `GET /settings`: Retrieves the theme and default project ID.\n- `PUT /settings`: Updates user global state preferences.\n\n## Projects (`/api/projects`)\n- `POST /`: Creates a project.\n- `GET /`: Lists all projects for the user.\n- `GET /{id}`: Gets detailed information on a single project.\n- `PUT /{id}`: Updates name/description.\n- `DELETE /{id}`: Deletes project.\n\n## Workflows (`/api/workflows`)\n- `POST /`: Creates a workflow with customizable stages.\n- `GET /`: Lists user workflows.\n- `PUT /{id}`: Updates a workflow's details/stages.\n- `DELETE /{id}`: Deletes the workflow.\n\n## Todos (`/api/todos`)\n- `POST /`: Creates a new kanban task.\n- `GET /`: Lists tasks (can be filtered by Project).\n- `PUT /{id}`: Updates a task (e.g., changing its stage or order).\n- `DELETE /{id}`: Removes a task.\n- `PATCH /{id}/toggle`: Quickly marks a task as done/undone.\n- `POST /{id}/subtasks`: Creates a new subtask attached to a todo.\n\n## Wikis (`/api/wikis`)\n- `POST /`: Creates a new markdown wiki page.\n- `GET /`: Lists all wiki pages.\n- `GET /{slug}`: Fetches a single wiki page by unique string literal.\n- `PUT /{id}`: Edits the page content.\n- `DELETE /{id}`: Deletes the page.\n\n## Diagrams (`/api/diagrams`)\n- `POST /`: Saves a new diagram.\n- `GET /`: Lists all diagrams.\n- `GET /{id}`: Gets diagram payload.\n- `PUT /{id}`: Edits a diagram.\n- `DELETE /{id}`: Deletes a diagram.\n\n## Icons (`/api/icons`)\n- `POST /`: Adds a custom icon/SVG.\n- `GET /`: Lists all icons.\n- `PUT /{id}`: Updates an icon payload.\n- `DELETE /{id}`: Removes the icon.\n\n## Uploads (`/api/upload`)\n- `POST /icon`: Handles multipart form data for uploading physical icon files. Parses the request and passes it to the Icon service.\n"
+    },
+    {
+      "category": "Specifications",
+      "title": "services",
+      "slug": "specs-services",
+      "content": "# Backend Services Specification\n\nThe business logic of the KanbanX application is centralized in the `backend/service` package. These services sit between the HTTP handlers and the data repositories.\n\n## Core Services\n\n### AuthService\n- **Responsibilities**: Handles user registration, login authentication, and JWT generation.\n- **Methods**: `Register`, `Login`, `GetUserByID`.\n- **Dependencies**: Uses `UserRepository` to persist and verify identity credentials, and `bcrypt` for password hashing.\n\n### UserService\n- **Responsibilities**: Manages user-specific preferences and global state.\n- **Methods**: `GetUserSettings`, `UpdateUserSettings`.\n- **Dependencies**: Integrates with `UserSettingsRepository`.\n\n### ProjectService\n- **Responsibilities**: Provides CRUD operations for Projects. Ensures resources are appropriately bounded to specific users.\n- **Methods**: `CreateProject`, `GetProjects`, `GetProjectByID`, `UpdateProject`, `DeleteProject`.\n\n### WorkflowService\n- **Responsibilities**: Handles the custom logic for Kanban board columns/stages.\n- **Methods**: `CreateWorkflow`, `GetWorkflows`, `UpdateWorkflow`, `DeleteWorkflow`.\n- **Specific Logic**: Ensures workflows inherently tie into stages (e.g., managing the order array and ensuring `stage_id` continuity).\n\n### TodoService\n- **Responsibilities**: Core kanban task interactions including completion toggles and stage movements.\n- **Methods**: `CreateTodo`, `GetTodos`, `UpdateTodo`, `DeleteTodo`, `ToggleTodo`, `CreateSubtask`.\n- **Dependencies**: Interacts heavily with `TodoRepository`. \n\n### WikiService\n- **Responsibilities**: Document organization via markdown pages. Enforces distinct `slug` uniqueness within user scopes.\n- **Methods**: `CreateWikiPage`, `GetWikiPages`, `GetWikiPageBySlug`, `UpdateWikiPage`, `DeleteWikiPage`.\n\n### DiagramService\n- **Responsibilities**: Manages vector/graph diagrams stored as content strings.\n- **Methods**: `CreateDiagram`, `GetDiagrams`, `GetDiagram`, `UpdateDiagram`, `DeleteDiagram`.\n\n### IconService\n- **Responsibilities**: Manages custom SVG paths or asset metadata across virtual \"folders\".\n- **Methods**: `CreateIcon`, `GetIcons`, `UpdateIcon`, `DeleteIcon`.\n"
+    },
+    {
+      "category": "Specifications",
+      "title": "Feature: auth",
+      "slug": "feature-auth",
+      "content": "Feature: User Authentication\n  In order to secure their workspace and personal data\n  As a user\n  I want to register an account and log in using my email and password\n\n  Scenario: Register a new account\n    Given I am a new user\n    When I submit my email and a secure password\n    Then a new account should be created for me\n    And I should be automatically logged in\n    And a default project, workflow, and wiki page should be generated\n\n  Scenario: Login with valid credentials\n    Given I have an existing account\n    When I submit my registered email and password\n    Then I should receive a JWT authentication token\n    And I should be redirected to my workspace\n\n  Scenario: Login with invalid credentials\n    Given I have an existing account\n    When I submit an incorrect password\n    Then I should see an authentication error\n    And I should not be granted access\n\n  Scenario: Prevent duplicate email registration\n    Given an account exists with the email \"user@example.com\"\n    When I attempt to register a new account with \"user@example.com\"\n    Then I should see an error indicating the email might already exist\n"
+    },
+    {
+      "category": "Specifications",
+      "title": "Feature: diagrams_icons",
+      "slug": "feature-diagrams_icons",
+      "content": "Feature: Diagrams and Icons\n  As an authenticated user\n  I want to create diagrams and upload custom icons\n  So that I can use them in my wikis and workflows\n\n  Background:\n    Given I am a registered and authenticated user\n\n  Scenario: Creating a mermaid diagram\n    When I send an authenticated request to create a new diagram with type \"graph TD\" and some mermaid code\n    Then the diagram should be saved to my account successfully\n    And I can reference it by ID in my wikis\n\n  Scenario: Editing a diagram\n    Given my account has a diagram with ID \"uuid\"\n    When I send an authenticated request to update the diagram code\n    Then the diagram should be updated\n    And any wiki referencing it will show the new diagram\n\n  Scenario: Prevent unauthorized access to diagrams\n    When I send an unauthenticated GET request to \"/api/diagrams\"\n    Then the response status code should be 401\n\n  Scenario: Uploading a custom icon\n    When I send an authenticated POST request with a file \"icon.png\" to \"/api/upload\"\n    Then the file should be saved in my account\n    And I should receive a URL to the uploaded file\n    And a new Icon record should be created in the database for me\n\n  Scenario: Deleting an icon\n    Given my account has an icon with ID \"uuid\"\n    When I send an authenticated request to delete the icon\n    Then the icon record should be removed\n    And it should no longer be available in the icon picker\n"
+    },
+    {
+      "category": "Specifications",
+      "title": "Feature: projects",
+      "slug": "feature-projects",
+      "content": "Feature: Project Management\n  In order to organize different areas of work\n  As a user\n  I want to create and manage multiple projects\n\n  Scenario: Create a new project\n    Given I am logged in\n    When I create a new project with a name, description, and workflow ID\n    Then the project should be saved to my workspace\n    And I should be able to navigate to the new project board\n\n  Scenario: View my projects\n    Given I have created multiple projects\n    When I view my projects list\n    Then I should see all of the projects I have access to\n\n  Scenario: Update an existing project\n    Given I have an existing project\n    When I update its name or description\n    Then the changes should be reflected immediately\n\n  Scenario: Delete a project\n    Given I have an existing project\n    When I delete the project\n    Then the project and all its associated tasks and wikis should be removed\n"
+    },
+    {
+      "category": "Specifications",
+      "title": "Feature: todos",
+      "slug": "feature-todos",
+      "content": "Feature: Todo Management\n  As an authenticated user\n  I want to be able to manage my todos\n  So that I can keep track of my tasks securely and separate from others\n\n  Background:\n    Given I am a registered and authenticated user\n\n  Scenario: Create a new todo\n    Given the backend server is running\n    When I send an authenticated POST request to \"/api/todos\" with the following JSON:\n      \"\"\"\n      {\n        \"title\": \"Buy groceries\",\n        \"content\": \"Milk, eggs, bread\",\n        \"stage\": \"To Do\"\n      }\n      \"\"\"\n    Then the response status code should be 201\n    And the response should contain a todo with title \"Buy groceries\", content \"Milk, eggs, bread\", and stage \"To Do\"\n    And the todo should belong to me\n\n  Scenario: Retrieve all my todos\n    Given my account contains a todo with title \"Buy groceries\"\n    When I send an authenticated GET request to \"/api/todos\"\n    Then the response status code should be 200\n    And the response should contain a list of todos\n    And the list should include a todo with title \"Buy groceries\"\n\n  Scenario: Prevent unauthorized access to todos\n    When I send an unauthenticated GET request to \"/api/todos\"\n    Then the response status code should be 401\n\n  Scenario: Update my todo\n    Given my account contains a todo with title \"Buy groceries\" and stage \"To Do\"\n    When I send an authenticated PUT request to update the todo to:\n      \"\"\"\n      {\n        \"title\": \"Buy groceries\",\n        \"stage\": \"In Progress\"\n      }\n      \"\"\"\n    Then the response status code should be 200\n    And the updated todo should have the stage \"In Progress\"\n\n  Scenario: Toggle my todo completion status\n    Given my account contains an incomplete todo with title \"Buy groceries\"\n    When I send an authenticated PATCH request to toggle the todo completion\n    Then the response status code should be 200\n    And the updated todo should be marked as completed\n\n  Scenario: Delete my todo\n    Given my account contains a todo with title \"Buy groceries\"\n    When I send an authenticated DELETE request for that todo\n    Then the response status code should be 204\n    And the todo should no longer exist in the database\n\n  Scenario: Create a subtask\n    Given my account contains a todo with title \"Parent Task\"\n    When I send an authenticated POST request to add a subtask with title \"Child Task\" to \"Parent Task\"\n    Then the response status code should be 201\n    And the created subtask should have \"Parent Task\" as its parent\n"
+    },
+    {
+      "category": "Specifications",
+      "title": "Feature: wikis",
+      "slug": "feature-wikis",
+      "content": "Feature: Wiki System\n  As an authenticated project member\n  I want to create and manage wiki pages\n  So that I can document architecture and project details securely\n\n  Background:\n    Given I am a registered and authenticated user\n\n  Scenario: Creating a new wiki page\n    Given my account has a project named \"Engineering\"\n    When I send an authenticated request to create a wiki page with title \"Architecture\" and slug \"arch\" and content \"Base architecture\"\n    Then the wiki page should be saved successfully\n    And I should see \"Architecture\" in the wiki index for \"Engineering\"\n\n  Scenario: Prevent unauthorized access to wikis\n    When I send an unauthenticated GET request to \"/api/wikis\"\n    Then the response status code should be 401\n\n  Scenario: Editing an existing wiki page\n    Given my account has a wiki page with slug \"arch\"\n    When I send an authenticated request to update the content to \"Updated architecture\"\n    Then the wiki page should reflect the new content\n    And the updated_at timestamp should change\n\n  Scenario: Viewing a wiki page with markdown and shortcodes\n    Given my account has a wiki page with content containing \"{{diagram:1}}\"\n    And my account has a diagram with ID 1\n    When I view the wiki page\n    Then I should see the rendered markdown\n    And the diagram 1 should be fetched and displayed seamlessly\n\n  Scenario: Deleting a wiki page\n    Given my account has a wiki page with slug \"arch\"\n    When I send an authenticated request to delete the wiki page\n    Then the wiki page should no longer appear in the wiki index\n"
+    },
+    {
+      "category": "Specifications",
+      "title": "Feature: workflows",
+      "slug": "feature-workflows",
+      "content": "Feature: Workflow Management\n  As an authenticated user\n  I want to be able to manage custom workflows\n  So that I can tailor the Kanban board columns to my needs\n\n  Background:\n    Given I am a registered and authenticated user\n\n  Scenario: Retrieve all workflows\n    Given my account contains a default workflow\n    When I send an authenticated GET request to \"/api/workflows\"\n    Then the response status code should be 200\n    And the response should contain a list of workflows including \"Default Workflow\"\n\n  Scenario: Prevent unauthorized access to workflows\n    When I send an unauthenticated GET request to \"/api/workflows\"\n    Then the response status code should be 401\n\n  Scenario: Create a new custom workflow\n    Given the backend server is running\n    When I send an authenticated POST request to \"/api/workflows\" with the following JSON:\n      \"\"\"\n      {\n        \"name\": \"Software Development\",\n        \"stages\": [\n          {\"name\": \"Backlog\"},\n          {\"name\": \"In Dev\"},\n          {\"name\": \"QA\"},\n          {\"name\": \"Deployed\"}\n        ]\n      }\n      \"\"\"\n    Then the response status code should be 201\n    And the response should contain a workflow with name \"Software Development\"\n    And it should have 4 stages in the correct order\n\n  Scenario: Update a workflow\n    Given my account contains a workflow with name \"Custom Workflow\"\n    When I send an authenticated PUT request to update the workflow to have stages \"Todo\", \"Doing\", \"Done\"\n    Then the response status code should be 200\n    And the workflow should be updated to contain those 3 stages\n\n  Scenario: Delete a workflow\n    Given my account contains a workflow with name \"Legacy Workflow\"\n    When I send an authenticated DELETE request for that workflow\n    Then the response status code should be 204\n    And the workflow should no longer exist in the database\n"
+    }
+  ]
+}

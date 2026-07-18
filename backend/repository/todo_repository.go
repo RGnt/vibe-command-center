@@ -17,6 +17,7 @@ type TodoRepository interface {
 	ToggleCompleted(id, userID int) (bool, error)
 	CheckExistsAndProjectID(id, userID int) (bool, *int, error)
 	GetAllByUserID(userID int) ([]models.Todo, error)
+	GetAllByProjectIDFlat(userID int, projectID int) ([]models.Todo, error)
 }
 
 type todoRepository struct {
