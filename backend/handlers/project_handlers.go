@@ -5,61 +5,46 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"time"
 
-	"todo-backend/database"
 	"todo-backend/middleware"
 	"todo-backend/models"
+	"todo-backend/service"
 
 	"github.com/go-chi/chi/v5"
 )
 
-// GetProjects gets all projects
-func GetProjects(w http.ResponseWriter, r *http.Request) {
+type ProjectHandler struct {
+	projectService service.ProjectService
+}
+
+func NewProjectHandler(projectService service.ProjectService) *ProjectHandler {
+	return &ProjectHandler{
+		projectService: projectService,
+	}
+}
+
+func (h *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	database.Mutex.RLock()
-	defer database.Mutex.RUnlock()
-
-	rows, err := database.DB.Query(`SELECT id, name, description, workflow_id, created_at FROM projects WHERE user_id = $1 ORDER BY created_at DESC`, userID)
+	projects, err := h.projectService.GetProjects(userID)
 	if err != nil {
 		http.Error(w, "Failed to fetch projects", http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
 
-	var projects []models.Project
-	for rows.Next() {
-		var project models.Project
-		var workflowID sql.NullInt64
-		var createdAt time.Time
-
-		err := rows.Scan(&project.ID, &project.Name, &project.Description, &workflowID, &createdAt)
-		if err != nil {
-			http.Error(w, "Failed to scan project", http.StatusInternalServerError)
-			return
-		}
-		project.UserID = userID
-		project.CreatedAt = createdAt
-
-		if workflowID.Valid {
-			wid := int(workflowID.Int64)
-			project.WorkflowID = &wid
-		}
-
-		projects = append(projects, project)
+	if projects == nil {
+		projects = []models.Project{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(projects)
 }
 
-// GetProject gets a specific project
-func GetProject(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) GetProject(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -72,14 +57,7 @@ func GetProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	database.Mutex.RLock()
-	defer database.Mutex.RUnlock()
-
-	var project models.Project
-	var workflowID sql.NullInt64
-	var createdAt time.Time
-
-	err = database.DB.QueryRow(`SELECT id, name, description, workflow_id, created_at FROM projects WHERE id = $1 AND user_id = $2`, id, userID).Scan(&project.ID, &project.Name, &project.Description, &workflowID, &createdAt)
+	project, err := h.projectService.GetProject(id, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Project not found", http.StatusNotFound)
@@ -88,20 +66,12 @@ func GetProject(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	project.UserID = userID
-	project.CreatedAt = createdAt
-
-	if workflowID.Valid {
-		wid := int(workflowID.Int64)
-		project.WorkflowID = &wid
-	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(project)
 }
 
-// CreateProject creates a new project
-func CreateProject(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -114,28 +84,18 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	database.Mutex.Lock()
-	defer database.Mutex.Unlock()
-
-	var id int64
-	query := `INSERT INTO projects (user_id, name, description, workflow_id) VALUES ($1, $2, $3, $4) RETURNING id`
-	err := database.DB.QueryRow(query, userID, project.Name, project.Description, project.WorkflowID).Scan(&id)
+	createdProject, err := h.projectService.CreateProject(userID, project)
 	if err != nil {
 		http.Error(w, "Failed to create project", http.StatusInternalServerError)
 		return
 	}
 
-	project.ID = int(id)
-	project.UserID = userID
-	project.CreatedAt = time.Now() // Close enough for response
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(project)
+	json.NewEncoder(w).Encode(createdProject)
 }
 
-// UpdateProject updates a project
-func UpdateProject(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -148,31 +108,23 @@ func UpdateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var updatedProject models.Project
-	if err := json.NewDecoder(r.Body).Decode(&updatedProject); err != nil {
+	var project models.Project
+	if err := json.NewDecoder(r.Body).Decode(&project); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	database.Mutex.Lock()
-	defer database.Mutex.Unlock()
-
-	query := `UPDATE projects SET name = $1, description = $2, workflow_id = $3 WHERE id = $4 AND user_id = $5`
-	_, err = database.DB.Exec(query, updatedProject.Name, updatedProject.Description, updatedProject.WorkflowID, id, userID)
+	updatedProject, err := h.projectService.UpdateProject(id, userID, project)
 	if err != nil {
 		http.Error(w, "Failed to update project", http.StatusInternalServerError)
 		return
 	}
 
-	updatedProject.ID = id
-	updatedProject.UserID = userID
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(updatedProject)
 }
 
-// DeleteProject deletes a project
-func DeleteProject(w http.ResponseWriter, r *http.Request) {
+func (h *ProjectHandler) DeleteProject(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -185,10 +137,7 @@ func DeleteProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	database.Mutex.Lock()
-	defer database.Mutex.Unlock()
-
-	_, err = database.DB.Exec("DELETE FROM projects WHERE id = $1 AND user_id = $2", id, userID)
+	err = h.projectService.DeleteProject(id, userID)
 	if err != nil {
 		http.Error(w, "Failed to delete project", http.StatusInternalServerError)
 		return

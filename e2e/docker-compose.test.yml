@@ -20,6 +20,17 @@ services:
     depends_on:
       - db
 
+  backend-test:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.test
+    environment:
+      - DATABASE_URL=postgres://todo_test_user:todo_test_password@db:5432/todo_test_db?sslmode=disable
+    depends_on:
+      - db
+    profiles:
+      - test
+
   frontend:
     build:
       context: ../frontend

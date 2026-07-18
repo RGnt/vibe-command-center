@@ -5,74 +5,46 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"time"
 
-	"todo-backend/database"
 	"todo-backend/middleware"
 	"todo-backend/models"
+	"todo-backend/service"
 
 	"github.com/go-chi/chi/v5"
 )
 
-// GetWikis fetches all wiki pages for a given project, or global wikis if project_id is omitted
-func GetWikis(w http.ResponseWriter, r *http.Request) {
+type WikiHandler struct {
+	wikiService service.WikiService
+}
+
+func NewWikiHandler(wikiService service.WikiService) *WikiHandler {
+	return &WikiHandler{
+		wikiService: wikiService,
+	}
+}
+
+func (h *WikiHandler) GetWikis(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	database.Mutex.RLock()
-	defer database.Mutex.RUnlock()
-
-	projectIDStr := r.URL.Query().Get("project_id")
-	
-	var rows *sql.Rows
-	var err error
-
-	if projectIDStr != "" {
-		projectID, _ := strconv.Atoi(projectIDStr)
-		rows, err = database.DB.Query(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE project_id = $1 AND user_id = $2 ORDER BY category, title`, projectID, userID)
-	} else {
-		rows, err = database.DB.Query(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE project_id IS NULL AND user_id = $1 ORDER BY category, title`, userID)
-	}
-
+	wikis, err := h.wikiService.GetWikis(userID)
 	if err != nil {
 		http.Error(w, "Failed to fetch wikis", http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
 
-	var pages []models.WikiPage
-	for rows.Next() {
-		var p models.WikiPage
-		var projectID sql.NullInt64
-		var createdAt, updatedAt time.Time
-
-		err := rows.Scan(&p.ID, &projectID, &p.Category, &p.Title, &p.Slug, &p.Content, &createdAt, &updatedAt)
-		if err != nil {
-			http.Error(w, "Failed to scan wiki page", http.StatusInternalServerError)
-			return
-		}
-
-		p.UserID = userID
-		p.CreatedAt = createdAt
-		p.UpdatedAt = updatedAt
-		
-		if projectID.Valid {
-			pid := int(projectID.Int64)
-			p.ProjectID = &pid
-		}
-
-		pages = append(pages, p)
+	if wikis == nil {
+		wikis = []models.WikiPage{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(pages)
+	json.NewEncoder(w).Encode(wikis)
 }
 
-// GetWiki gets a specific wiki page by slug
-func GetWiki(w http.ResponseWriter, r *http.Request) {
+func (h *WikiHandler) GetWiki(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -81,75 +53,45 @@ func GetWiki(w http.ResponseWriter, r *http.Request) {
 
 	slug := chi.URLParam(r, "slug")
 
-	database.Mutex.RLock()
-	defer database.Mutex.RUnlock()
-
-	var p models.WikiPage
-	var projectID sql.NullInt64
-	var createdAt, updatedAt time.Time
-
-	err := database.DB.QueryRow(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE slug = $1 AND user_id = $2`, slug, userID).
-		Scan(&p.ID, &projectID, &p.Category, &p.Title, &p.Slug, &p.Content, &createdAt, &updatedAt)
-		
+	wiki, err := h.wikiService.GetWiki(slug, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			http.Error(w, "Wiki page not found", http.StatusNotFound)
+			http.Error(w, "Wiki not found", http.StatusNotFound)
 		} else {
-			http.Error(w, "Failed to fetch wiki page", http.StatusInternalServerError)
+			http.Error(w, "Failed to fetch wiki", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	p.UserID = userID
-	p.CreatedAt = createdAt
-	p.UpdatedAt = updatedAt
-
-	if projectID.Valid {
-		pid := int(projectID.Int64)
-		p.ProjectID = &pid
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(p)
+	json.NewEncoder(w).Encode(wiki)
 }
 
-// CreateWiki creates a new wiki page
-func CreateWiki(w http.ResponseWriter, r *http.Request) {
+func (h *WikiHandler) CreateWiki(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var p models.WikiPage
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+	var wiki models.WikiPage
+	if err := json.NewDecoder(r.Body).Decode(&wiki); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	database.Mutex.Lock()
-	defer database.Mutex.Unlock()
-
-	var id int64
-	query := `INSERT INTO wiki_pages (user_id, project_id, category, title, slug, content) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
-	err := database.DB.QueryRow(query, userID, p.ProjectID, p.Category, p.Title, p.Slug, p.Content).Scan(&id)
+	createdWiki, err := h.wikiService.CreateWiki(userID, wiki)
 	if err != nil {
-		http.Error(w, "Failed to create wiki page (slug might not be unique)", http.StatusInternalServerError)
+		http.Error(w, "Failed to create wiki", http.StatusInternalServerError)
 		return
 	}
-
-	p.ID = int(id)
-	p.UserID = userID
-	p.CreatedAt = time.Now()
-	p.UpdatedAt = p.CreatedAt
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(p)
+	json.NewEncoder(w).Encode(createdWiki)
 }
 
-// UpdateWiki updates a wiki page
-func UpdateWiki(w http.ResponseWriter, r *http.Request) {
+func (h *WikiHandler) UpdateWiki(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -162,32 +104,23 @@ func UpdateWiki(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var p models.WikiPage
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+	var wiki models.WikiPage
+	if err := json.NewDecoder(r.Body).Decode(&wiki); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	database.Mutex.Lock()
-	defer database.Mutex.Unlock()
-
-	query := `UPDATE wiki_pages SET category = $1, title = $2, slug = $3, content = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 AND user_id = $6`
-	_, err = database.DB.Exec(query, p.Category, p.Title, p.Slug, p.Content, id, userID)
+	updatedWiki, err := h.wikiService.UpdateWiki(id, userID, wiki)
 	if err != nil {
-		http.Error(w, "Failed to update wiki page", http.StatusInternalServerError)
+		http.Error(w, "Failed to update wiki", http.StatusInternalServerError)
 		return
 	}
 
-	p.ID = id
-	p.UserID = userID
-	p.UpdatedAt = time.Now()
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(p)
+	json.NewEncoder(w).Encode(updatedWiki)
 }
 
-// DeleteWiki deletes a wiki page
-func DeleteWiki(w http.ResponseWriter, r *http.Request) {
+func (h *WikiHandler) DeleteWiki(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -200,12 +133,9 @@ func DeleteWiki(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	database.Mutex.Lock()
-	defer database.Mutex.Unlock()
-
-	_, err = database.DB.Exec("DELETE FROM wiki_pages WHERE id = $1 AND user_id = $2", id, userID)
+	err = h.wikiService.DeleteWiki(id, userID)
 	if err != nil {
-		http.Error(w, "Failed to delete wiki page", http.StatusInternalServerError)
+		http.Error(w, "Failed to delete wiki", http.StatusInternalServerError)
 		return
 	}
 

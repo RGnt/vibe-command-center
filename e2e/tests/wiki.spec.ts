@@ -8,7 +8,7 @@ test.describe('Wiki Features', () => {
     await page.getByText('General Wiki').click();
 
     // Verify seeded Wiki view loaded
-    await expect(page.getByText('Global Guide').first()).toBeVisible();
+    await expect(page.getByText('Welcome to the Wiki').first()).toBeVisible();
 
     // Create a new wiki page
     await page.getByRole('button', { name: 'New Page' }).click();

@@ -33,6 +33,36 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService)
 	authMiddleware := mymiddleware.NewAuthMiddlewareProvider([]byte(jwtSecret))
 
+	userSettingsRepo := repository.NewUserSettingsRepository(database.DB)
+	userService := service.NewUserService(userSettingsRepo)
+	userHandler := handlers.NewUserHandler(userService)
+
+	projectRepo := repository.NewProjectRepository(database.DB)
+	projectService := service.NewProjectService(projectRepo)
+	projectHandler := handlers.NewProjectHandler(projectService)
+
+	workflowRepo := repository.NewWorkflowRepository(database.DB)
+	workflowService := service.NewWorkflowService(workflowRepo)
+	workflowHandler := handlers.NewWorkflowHandler(workflowService)
+
+	todoRepo := repository.NewTodoRepository(database.DB)
+	todoService := service.NewTodoService(todoRepo)
+	todoHandler := handlers.NewTodoHandler(todoService)
+
+	diagramRepo := repository.NewDiagramRepository(database.DB)
+	diagramService := service.NewDiagramService(diagramRepo)
+	diagramHandler := handlers.NewDiagramHandler(diagramService)
+
+	iconRepo := repository.NewIconRepository(database.DB)
+	iconService := service.NewIconService(iconRepo)
+	iconHandler := handlers.NewIconHandler(iconService)
+
+	wikiRepo := repository.NewWikiRepository(database.DB)
+	wikiService := service.NewWikiService(wikiRepo)
+	wikiHandler := handlers.NewWikiHandler(wikiService)
+
+	uploadHandler := handlers.NewUploadHandler(iconService)
+
 	r := chi.NewRouter()
 
 	// Middleware
@@ -58,53 +88,53 @@ func main() {
 
 		r.Get("/api/auth/me", authHandler.GetMe)
 		
-		r.Get("/api/user/settings", handlers.GetUserSettings)
-		r.Put("/api/user/settings", handlers.UpdateUserSettings)
+		r.Get("/api/user/settings", userHandler.GetUserSettings)
+		r.Put("/api/user/settings", userHandler.UpdateUserSettings)
 
 		// Routes
-		r.Get("/api/todos", handlers.GetTodos)
-		r.Get("/api/todos/{id}", handlers.GetTodo)
-		r.Post("/api/todos", handlers.CreateTodo)
-		r.Post("/api/todos/{parent_id}/subtasks", handlers.CreateSubtask)
-		r.Put("/api/todos/{id}", handlers.UpdateTodo)
-		r.Delete("/api/todos/{id}", handlers.DeleteTodo)
-		r.Patch("/api/todos/{id}/toggle", handlers.ToggleTodo)
-		r.Get("/api/todos/stage", handlers.GetTodosByStage)
+		r.Get("/api/todos", todoHandler.GetTodos)
+		r.Get("/api/todos/{id}", todoHandler.GetTodo)
+		r.Post("/api/todos", todoHandler.CreateTodo)
+		r.Post("/api/todos/{parent_id}/subtasks", todoHandler.CreateSubtask)
+		r.Put("/api/todos/{id}", todoHandler.UpdateTodo)
+		r.Delete("/api/todos/{id}", todoHandler.DeleteTodo)
+		r.Patch("/api/todos/{id}/toggle", todoHandler.ToggleTodo)
+		r.Get("/api/todos/stage", todoHandler.GetTodosByStage)
 
 		// Workflow routes
-		r.Get("/api/workflows", handlers.GetWorkflows)
-		r.Post("/api/workflows", handlers.CreateWorkflow)
-		r.Put("/api/workflows/{id}", handlers.UpdateWorkflow)
-		r.Delete("/api/workflows/{id}", handlers.DeleteWorkflow)
+		r.Get("/api/workflows", workflowHandler.GetWorkflows)
+		r.Post("/api/workflows", workflowHandler.CreateWorkflow)
+		r.Put("/api/workflows/{id}", workflowHandler.UpdateWorkflow)
+		r.Delete("/api/workflows/{id}", workflowHandler.DeleteWorkflow)
 
 		// Project routes
-		r.Get("/api/projects", handlers.GetProjects)
-		r.Get("/api/projects/{id}", handlers.GetProject)
-		r.Post("/api/projects", handlers.CreateProject)
-		r.Put("/api/projects/{id}", handlers.UpdateProject)
-		r.Delete("/api/projects/{id}", handlers.DeleteProject)
+		r.Get("/api/projects", projectHandler.GetProjects)
+		r.Get("/api/projects/{id}", projectHandler.GetProject)
+		r.Post("/api/projects", projectHandler.CreateProject)
+		r.Put("/api/projects/{id}", projectHandler.UpdateProject)
+		r.Delete("/api/projects/{id}", projectHandler.DeleteProject)
 
 		// Upload route
-		r.Post("/api/upload", handlers.UploadFile)
+		r.Post("/api/upload", uploadHandler.UploadFile)
 
 		// Icon routes
-		r.Get("/api/icons", handlers.GetIcons)
-		r.Put("/api/icons/{id}", handlers.UpdateIcon)
-		r.Delete("/api/icons/{id}", handlers.DeleteIcon)
+		r.Get("/api/icons", iconHandler.GetIcons)
+		r.Put("/api/icons/{id}", iconHandler.UpdateIcon)
+		r.Delete("/api/icons/{id}", iconHandler.DeleteIcon)
 
 		// Diagram routes
-		r.Get("/api/diagrams", handlers.GetDiagrams)
-		r.Get("/api/diagrams/{id}", handlers.GetDiagram)
-		r.Post("/api/diagrams", handlers.CreateDiagram)
-		r.Put("/api/diagrams/{id}", handlers.UpdateDiagram)
-		r.Delete("/api/diagrams/{id}", handlers.DeleteDiagram)
+		r.Get("/api/diagrams", diagramHandler.GetDiagrams)
+		r.Get("/api/diagrams/{id}", diagramHandler.GetDiagram)
+		r.Post("/api/diagrams", diagramHandler.CreateDiagram)
+		r.Put("/api/diagrams/{id}", diagramHandler.UpdateDiagram)
+		r.Delete("/api/diagrams/{id}", diagramHandler.DeleteDiagram)
 
 		// Wiki routes
-		r.Get("/api/wikis", handlers.GetWikis)
-		r.Get("/api/wikis/{slug}", handlers.GetWiki)
-		r.Post("/api/wikis", handlers.CreateWiki)
-		r.Put("/api/wikis/{id}", handlers.UpdateWiki)
-		r.Delete("/api/wikis/{id}", handlers.DeleteWiki)
+		r.Get("/api/wikis", wikiHandler.GetWikis)
+		r.Get("/api/wikis/{slug}", wikiHandler.GetWiki)
+		r.Post("/api/wikis", wikiHandler.CreateWiki)
+		r.Put("/api/wikis/{id}", wikiHandler.UpdateWiki)
+		r.Delete("/api/wikis/{id}", wikiHandler.DeleteWiki)
 	})
 
 	log.Println("Server starting on :8080...")

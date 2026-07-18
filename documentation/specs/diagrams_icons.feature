@@ -1,29 +1,34 @@
-Feature: Mermaid Diagrams & Custom Icons
-  As an application user
+Feature: Diagrams and Icons
+  As an authenticated user
   I want to create diagrams and upload custom icons
-  So that I can visualize workflows and architectures
+  So that I can use them in my wikis and workflows
 
-  Scenario: Creating and saving a diagram
-    Given I open the Diagram Editor
-    When I type Mermaid syntax "graph TD; A-->B;"
-    And I enter "My Flow" as the diagram name
-    And I click save
-    Then the diagram should be saved to the database
-    And it should appear in the Load dropdown
+  Background:
+    Given I am a registered and authenticated user
+
+  Scenario: Creating a mermaid diagram
+    When I send an authenticated request to create a new diagram with type "graph TD" and some mermaid code
+    Then the diagram should be saved to my account successfully
+    And I can reference it by ID in my wikis
+
+  Scenario: Editing a diagram
+    Given my account has a diagram with ID "uuid"
+    When I send an authenticated request to update the diagram code
+    Then the diagram should be updated
+    And any wiki referencing it will show the new diagram
+
+  Scenario: Prevent unauthorized access to diagrams
+    When I send an unauthenticated GET request to "/api/diagrams"
+    Then the response status code should be 401
 
   Scenario: Uploading a custom icon
-    Given I am in the Diagram Editor
-    When I select an image file to upload
-    Then the image should be uploaded successfully
-    And it should appear in the "Custom Icons" sidebar section under the "General" folder
+    When I send an authenticated POST request with a file "icon.png" to "/api/upload"
+    Then the file should be saved in my account
+    And I should receive a URL to the uploaded file
+    And a new Icon record should be created in the database for me
 
-  Scenario: Moving a custom icon to a folder
-    Given a custom icon exists in the "General" folder
-    When I click the move button and type "AWS"
-    Then the icon should be moved to the "AWS" folder
-    And the "AWS" folder should be visible and collapsible in the sidebar
-
-  Scenario: Drag and drop custom icon to canvas
-    Given I have an icon in the sidebar
-    When I drag the icon to the canvas
-    Then a new Mermaid node with the image tag should be added to the diagram
+  Scenario: Deleting an icon
+    Given my account has an icon with ID "uuid"
+    When I send an authenticated request to delete the icon
+    Then the icon record should be removed
+    And it should no longer be available in the icon picker

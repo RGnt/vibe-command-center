@@ -4,36 +4,38 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"todo-backend/database"
 	"todo-backend/middleware"
 	"todo-backend/models"
+	"todo-backend/service"
 )
 
-func GetUserSettings(w http.ResponseWriter, r *http.Request) {
+type UserHandler struct {
+	userService service.UserService
+}
+
+func NewUserHandler(userService service.UserService) *UserHandler {
+	return &UserHandler{
+		userService: userService,
+	}
+}
+
+func (h *UserHandler) GetUserSettings(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var settings models.UserSettings
-	err := database.DB.QueryRow(`
-		SELECT user_id, theme, default_project_id 
-		FROM user_settings WHERE user_id = $1
-	`, userID).Scan(&settings.UserID, &settings.Theme, &settings.DefaultProjectID)
-	
+	settings, err := h.userService.GetSettings(userID)
 	if err != nil {
-		// If not found, return default
-		settings = models.UserSettings{
-			UserID: userID,
-			Theme:  "system",
-		}
+		http.Error(w, "Error fetching settings", http.StatusInternalServerError)
+		return
 	}
 
 	json.NewEncoder(w).Encode(settings)
 }
 
-func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -46,19 +48,11 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := database.DB.Exec(`
-		INSERT INTO user_settings (user_id, theme, default_project_id) 
-		VALUES ($1, $2, $3)
-		ON CONFLICT (user_id) DO UPDATE SET 
-			theme = EXCLUDED.theme,
-			default_project_id = EXCLUDED.default_project_id
-	`, userID, settings.Theme, settings.DefaultProjectID)
-
+	updatedSettings, err := h.userService.UpdateSettings(userID, settings)
 	if err != nil {
 		http.Error(w, "Error updating settings", http.StatusInternalServerError)
 		return
 	}
 
-	settings.UserID = userID
-	json.NewEncoder(w).Encode(settings)
+	json.NewEncoder(w).Encode(updatedSettings)
 }

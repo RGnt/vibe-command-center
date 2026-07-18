@@ -69,3 +69,26 @@ type Workflow struct {
 	Stages    []WorkflowStage `json:"stages"`
 	CreatedAt time.Time       `json:"created_at"`
 }
+
+// Diagram represents a saved mermaid diagram
+type Diagram struct {
+	ID          int    `json:"id"`
+	UserID      int    `json:"user_id"`
+	Name        string `json:"name"`
+	DiagramType string `json:"diagram_type"`
+	Code        string `json:"code"`
+	Explanation string `json:"explanation"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
+}
+
+// Icon represents an uploaded icon image
+type Icon struct {
+	ID        int    `json:"id"`
+	UserID    int    `json:"user_id"`
+	Name      string `json:"name"`
+	URL       string `json:"url"`
+	Folder    string `json:"folder"`
+	CreatedAt string `json:"created_at"`
+}
+

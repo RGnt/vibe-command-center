@@ -8,14 +8,25 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"todo-backend/database"
 	"todo-backend/middleware"
+	"todo-backend/models"
+	"todo-backend/service"
 
 	"github.com/google/uuid"
 )
 
+type UploadHandler struct {
+	iconService service.IconService
+}
+
+func NewUploadHandler(iconService service.IconService) *UploadHandler {
+	return &UploadHandler{
+		iconService: iconService,
+	}
+}
+
 // UploadFile handles multipart form uploads and saves files to ./uploads
-func UploadFile(w http.ResponseWriter, r *http.Request) {
+func (h *UploadHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -65,12 +76,13 @@ func UploadFile(w http.ResponseWriter, r *http.Request) {
 	url := "/uploads/" + newFilename
 	name := strings.TrimSuffix(handler.Filename, ext)
 
-	// Save to database
-	database.Mutex.Lock()
-	var id int
-	err = database.DB.QueryRow(`INSERT INTO icons (user_id, name, url) VALUES ($1, $2, $3) RETURNING id`, userID, name, url).Scan(&id)
-	database.Mutex.Unlock()
+	icon := models.Icon{
+		Name:   name,
+		URL:    url,
+		Folder: "",
+	}
 
+	createdIcon, err := h.iconService.CreateIcon(userID, icon)
 	if err != nil {
 		log.Println("Failed to insert icon to DB:", err)
 		http.Error(w, "Failed to save icon data", http.StatusInternalServerError)
@@ -79,8 +91,8 @@ func UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"id": id,
-		"url": url,
-		"name": name,
+		"id":   createdIcon.ID,
+		"url":  createdIcon.URL,
+		"name": createdIcon.Name,
 	})
 }

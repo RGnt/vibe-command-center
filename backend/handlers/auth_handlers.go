@@ -3,7 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
+	"strings"
 
 	"todo-backend/middleware"
 	"todo-backend/models"
@@ -39,7 +41,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	user, token, err := h.authService.Register(input.Email, input.Password)
 	if err != nil {
-		if err.Error() == "email might already exist" { // Could use strongly typed error here too, exported from repository layer
+		log.Printf("Registration error: %v\n", err)
+		if strings.Contains(err.Error(), "email might already exist") { // Could use strongly typed error here too, exported from repository layer
 			http.Error(w, "Email might already exist", http.StatusConflict)
 			return
 		}

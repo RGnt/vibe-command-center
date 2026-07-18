@@ -1,64 +1,76 @@
-# Agentic IDE Todo & Knowledge App
+# KanbanX
 
-Welcome to the Agentic IDE Todo App! This is a feature-rich, modern application built with a React frontend, a Go backend, and a PostgreSQL database (equipped with pgvector and AGE extensions). It offers Kanban boards, a Mermaid diagram editor, a full Markdown Wiki, and a highly polished Tokyo Night aesthetic.
+KanbanX is a comprehensive project management and workflow organization tool designed to streamline your development and personal tasks. It features a modern, responsive UI built with React, and a robust backend built with Go and PostgreSQL.
 
 ## Features
 
-- **Kanban Board**: Visualize and manage tasks with stages ("To Do", "In Progress", "Done"). Support for nested subtasks.
-- **Wiki System**: Create and edit Markdown-based wiki pages. Supports LaTeX equations and seamless internal linking.
-- **Mermaid Editor**: Build architecture diagrams and flowcharts visually.
-  - Choose from various diagram types (graph TD, sequence diagram, class diagram, etc.).
-  - Drag and drop shapes or custom icons onto the canvas.
-  - Upload custom icons (SVG, PNG, JPEG, WEBP) and organize them into collapsible folders.
-  - Save diagrams to the database and embed them into the Wiki or Kanban tasks.
-- **Tokyo Night Theme**: An elegant, dynamic visual design that emphasizes aesthetics and usability.
-- **Dockerized Environment**: The entire stack, including a comprehensive E2E test suite using Playwright, runs inside Docker.
+- **Authentication**: Secure JWT-based user authentication.
+- **Project Management**: Create and manage multiple projects and workspaces.
+- **Kanban Board**: Highly customizable kanban boards with drag-and-drop functionality for managing tasks and subtasks.
+- **Custom Workflows**: Define custom workflow stages for your projects to match your team's specific needs.
+- **Integrated Wiki**: Built-in Markdown-based wiki for project documentation, architecture notes, and general guides.
+- **Diagrams**: Integrated diagram creation and visualization directly within your workspace.
+- **File Uploads & Icons**: Manage custom icons and upload attachments to enrich your workspace.
 
-## Getting Started
+## Technology Stack
 
-### Prerequisites
+### Frontend
+- React (Vite)
+- Tailwind CSS
+- Context API for state management
+- Drag and Drop interfaces
 
-- [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
+### Backend
+- Go (Golang)
+- `go-chi` router
+- JWT for authentication
+- PostgreSQL with `pgvector` and `AGE` extensions
 
-### Running the Application
+## Prerequisites
 
-To start the main application stack, simply run:
+To run this application, you must have Docker and Docker Compose installed on your system.
+
+## Running the Application
+
+### Production / Development Mode
+You can spin up the application using Docker Compose. The `docker-compose.yml` provides a full environment including the frontend, backend, and PostgreSQL database.
 
 ```bash
 docker compose up -d --build
 ```
+Once the containers are running:
+- **Frontend** is available at: `http://localhost:8080` (or `http://localhost` depending on your Nginx configuration)
+- **Backend API** is internally routed via the frontend proxy at `/api/`
 
-This will spin up:
-- The **Frontend** on `http://localhost:80`
-- The **Backend API** (internally routed)
-- The **PostgreSQL Database**
-- **Adminer** on `http://localhost:8081` for direct database management
+### Running the End-to-End Test Suite
 
-The application will be accessible at `http://localhost:80`.
-
-### Running End-to-End (E2E) Tests
-
-We have a complete E2E test suite configured using Playwright that tests the application in isolation.
+KanbanX includes a comprehensive End-to-End (E2E) testing suite built with Playwright. The E2E tests spin up an isolated test environment using `docker-compose.test.yml`.
 
 1. Navigate to the `e2e` directory:
    ```bash
    cd e2e
    ```
-2. Run the Playwright test suite (this will automatically build the test containers, run the tests, and tear down the environment):
+2. Install Playwright dependencies (if running for the first time):
+   ```bash
+   npm install
+   npx playwright install
+   ```
+3. Run the test suite:
    ```bash
    npx playwright test
    ```
+   *Note: This command will automatically build the test containers, run the Go backend tests, and then execute the Playwright UI tests against the isolated environment.*
 
-*(Note: The E2E test environment runs on a separate port `8089` to avoid conflicting with the production container.)*
+## Project Structure
 
-## Architecture
+- `/frontend`: React application, UI components, and Vite configuration.
+- `/backend`: Go application, REST API handlers, business logic, and database repositories.
+- `/e2e`: Playwright test suite and test infrastructure configuration.
+- `/documentation`: Feature specifications, system architecture, and API documentation.
 
-- **Frontend**: React, Vite, Tailwind CSS v4, React Flow (for canvas interactions), and Zustand (for state management).
-- **Backend**: Go 1.23, utilizing a standard `net/http` router, and connecting to Postgres via the `pgx` driver.
-- **Database**: PostgreSQL 16 with `pgvector` and `Apache AGE` (Graph Database extension) built-in. Data schemas include `todos`, `workflows`, `wikis`, `diagrams`, and `icons`.
+## User Interface
 
-## Documentation
+KanbanX utilizes a sleek "Glassmorphism" design with a dark mode color palette tailored for developers and power users. Micro-animations and responsive layouts ensure a smooth experience across different devices.
 
-For more detailed information about the API and system behaviors, check the `/documentation` directory in this repository:
-- `/documentation/api/openapi.yaml` - Complete OpenAPI 3.0 specifications.
-- `/documentation/specs/` - Behavior-Driven Development (BDD) `.feature` files describing all use cases for Todos, Workflows, Wikis, and the Diagram Editor.
+## API Documentation
+The application features a RESTful API. For detailed API endpoints and request/response schemas, refer to the documentation in the `/documentation` directory or browse the handler definitions in `/backend/handlers`.

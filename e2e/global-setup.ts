@@ -8,7 +8,7 @@ async function waitForService(url: string, timeout = 120000) {
     try {
       const ok = await new Promise((resolve) => {
         const req = http.get(url, (res) => {
-          resolve(res.statusCode === 200 || res.statusCode === 404); // 404 is okay if API endpoint doesn't exist yet, we just want the server to be up
+          resolve(res.statusCode === 200 || res.statusCode === 404 || res.statusCode === 401); // 401/404 is okay, we just want the server to be up
         });
         req.on('error', (err) => {
           lastErr = err;
@@ -37,6 +37,10 @@ async function globalSetup() {
   await waitForService('http://127.0.0.1:8089');
   await waitForService('http://127.0.0.1:8089/api/workflows'); // Wait for API
   
+  console.log('Running backend database tests...');
+  execSync('docker compose -p e2e_tests -f docker-compose.test.yml build backend-test', { stdio: 'inherit' });
+  execSync('docker compose -p e2e_tests -f docker-compose.test.yml run --rm backend-test', { stdio: 'inherit' });
+
   console.log('Test environment is ready!');
 }
 

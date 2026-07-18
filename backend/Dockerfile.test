@@ -1,0 +1,14 @@
+FROM golang:1.25.0-alpine
+
+WORKDIR /app
+
+ENV CGO_ENABLED=0
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# Wait for DB to be up if necessary, or let the test connection handle it.
+# The tests will execute against the temporary DB container.
+CMD ["go", "test", "./...", "-v"]

@@ -3,55 +3,46 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"todo-backend/database"
 	"todo-backend/middleware"
+	"todo-backend/models"
+	"todo-backend/service"
 	"github.com/go-chi/chi/v5"
 	"log"
 )
 
-type Diagram struct {
-	ID          int    `json:"id"`
-	UserID      int    `json:"user_id"`
-	Name        string `json:"name"`
-	DiagramType  string `json:"diagram_type"`
-	Code         string `json:"code"`
-	Explanation  string `json:"explanation"`
-	CreatedAt    string `json:"created_at"`
-	UpdatedAt    string `json:"updated_at"`
+type DiagramHandler struct {
+	diagramService service.DiagramService
 }
 
-func GetDiagrams(w http.ResponseWriter, r *http.Request) {
+func NewDiagramHandler(diagramService service.DiagramService) *DiagramHandler {
+	return &DiagramHandler{
+		diagramService: diagramService,
+	}
+}
+
+func (h *DiagramHandler) GetDiagrams(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	database.Mutex.RLock()
-	rows, err := database.DB.Query(`SELECT id, user_id, name, diagram_type, code, explanation, created_at, updated_at FROM diagrams WHERE user_id = $1 ORDER BY updated_at DESC`, userID)
-	database.Mutex.RUnlock()
-
+	diagrams, err := h.diagramService.GetDiagrams(userID)
 	if err != nil {
 		log.Println("Error fetching diagrams:", err)
 		http.Error(w, "Error fetching diagrams", http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
 
-	var diagrams []Diagram
-	for rows.Next() {
-		var d Diagram
-		if err := rows.Scan(&d.ID, &d.UserID, &d.Name, &d.DiagramType, &d.Code, &d.Explanation, &d.CreatedAt, &d.UpdatedAt); err != nil {
-			continue
-		}
-		diagrams = append(diagrams, d)
+	if diagrams == nil {
+		diagrams = []models.Diagram{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(diagrams)
 }
 
-func GetDiagram(w http.ResponseWriter, r *http.Request) {
+func (h *DiagramHandler) GetDiagram(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -60,12 +51,7 @@ func GetDiagram(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 
-	database.Mutex.RLock()
-	var d Diagram
-	err := database.DB.QueryRow(`SELECT id, user_id, name, diagram_type, code, explanation, created_at, updated_at FROM diagrams WHERE id = $1 AND user_id = $2`, id, userID).
-		Scan(&d.ID, &d.UserID, &d.Name, &d.DiagramType, &d.Code, &d.Explanation, &d.CreatedAt, &d.UpdatedAt)
-	database.Mutex.RUnlock()
-
+	d, err := h.diagramService.GetDiagram(id, userID)
 	if err != nil {
 		http.Error(w, "Diagram not found", http.StatusNotFound)
 		return
@@ -75,37 +61,31 @@ func GetDiagram(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(d)
 }
 
-func CreateDiagram(w http.ResponseWriter, r *http.Request) {
+func (h *DiagramHandler) CreateDiagram(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var req Diagram
+	var req models.Diagram
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 
-	database.Mutex.Lock()
-	err := database.DB.QueryRow(
-		`INSERT INTO diagrams (user_id, name, diagram_type, code, explanation) VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at, updated_at`,
-		userID, req.Name, req.DiagramType, req.Code, req.Explanation).
-		Scan(&req.ID, &req.CreatedAt, &req.UpdatedAt)
-	database.Mutex.Unlock()
-
+	createdDiagram, err := h.diagramService.CreateDiagram(userID, req)
 	if err != nil {
 		http.Error(w, "Failed to create diagram", http.StatusInternalServerError)
 		return
 	}
 
-	req.UserID = userID
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(req)
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(createdDiagram)
 }
 
-func UpdateDiagram(w http.ResponseWriter, r *http.Request) {
+func (h *DiagramHandler) UpdateDiagram(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -113,31 +93,23 @@ func UpdateDiagram(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := chi.URLParam(r, "id")
-	var req Diagram
+	var req models.Diagram
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
 
-	database.Mutex.Lock()
-	err := database.DB.QueryRow(
-		`UPDATE diagrams SET name = $1, diagram_type = $2, code = $3, explanation = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5 AND user_id = $6 RETURNING updated_at`,
-		req.Name, req.DiagramType, req.Code, req.Explanation, id, userID).
-		Scan(&req.UpdatedAt)
-	database.Mutex.Unlock()
-
+	updatedDiagram, err := h.diagramService.UpdateDiagram(id, userID, req)
 	if err != nil {
 		http.Error(w, "Failed to update diagram", http.StatusInternalServerError)
 		return
 	}
 	
-	req.ID = 0 // not strictly necessary, but good to know
-	req.UserID = userID
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(req)
+	json.NewEncoder(w).Encode(updatedDiagram)
 }
 
-func DeleteDiagram(w http.ResponseWriter, r *http.Request) {
+func (h *DiagramHandler) DeleteDiagram(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -146,14 +118,11 @@ func DeleteDiagram(w http.ResponseWriter, r *http.Request) {
 
 	id := chi.URLParam(r, "id")
 
-	database.Mutex.Lock()
-	_, err := database.DB.Exec(`DELETE FROM diagrams WHERE id = $1 AND user_id = $2`, id, userID)
-	database.Mutex.Unlock()
-
+	err := h.diagramService.DeleteDiagram(id, userID)
 	if err != nil {
 		http.Error(w, "Failed to delete diagram", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }

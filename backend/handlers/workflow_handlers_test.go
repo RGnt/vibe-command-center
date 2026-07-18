@@ -7,35 +7,33 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+
 	"todo-backend/database"
 	"todo-backend/models"
+	"todo-backend/testutils"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func clearWorkflowsTable() {
-	database.DB.Exec("DELETE FROM workflow_stages")
-	database.DB.Exec("DELETE FROM workflows")
-}
-
 func setupWorkflowRouter() *chi.Mux {
 	r := chi.NewRouter()
-	r.Get("/api/workflows", GetWorkflows)
-	r.Post("/api/workflows", CreateWorkflow)
-	r.Put("/api/workflows/{id}", UpdateWorkflow)
-	r.Delete("/api/workflows/{id}", DeleteWorkflow)
+	r.Get("/api/workflows", testutils.AuthContext(1, workflowHandler.GetWorkflows))
+	r.Post("/api/workflows", testutils.AuthContext(1, workflowHandler.CreateWorkflow))
+	r.Put("/api/workflows/{id}", testutils.AuthContext(1, workflowHandler.UpdateWorkflow))
+	r.Delete("/api/workflows/{id}", testutils.AuthContext(1, workflowHandler.DeleteWorkflow))
 	return r
 }
 
 func TestCreateWorkflow(t *testing.T) {
-	clearWorkflowsTable()
-	router := setupWorkflowRouter()
+	testutils.ClearDB()
+	setupTestUser()
+	r := setupWorkflowRouter()
 
 	workflow := models.Workflow{
 		Name: "Test Workflow",
 		Stages: []models.WorkflowStage{
-			{Name: "Stage 1"},
-			{Name: "Stage 2"},
+			{Name: "Stage 1", Order: 1},
+			{Name: "Stage 2", Order: 2},
 		},
 	}
 	body, _ := json.Marshal(workflow)
@@ -43,10 +41,10 @@ func TestCreateWorkflow(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
+	r.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusCreated {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
+	if rr.Code != http.StatusCreated {
+		t.Errorf("Expected status code %d, got %d. Body: %s", http.StatusCreated, rr.Code, rr.Body.String())
 	}
 
 	var responseWorkflow models.Workflow
@@ -60,19 +58,18 @@ func TestCreateWorkflow(t *testing.T) {
 }
 
 func TestGetWorkflows(t *testing.T) {
-	clearWorkflowsTable()
-	router := setupWorkflowRouter()
+	testutils.ClearDB()
+	setupTestUser()
+	r := setupWorkflowRouter()
 
-	res, _ := database.DB.Exec(`INSERT INTO workflows (name) VALUES ('Test Workflow')`)
-	id, _ := res.LastInsertId()
-	database.DB.Exec(`INSERT INTO workflow_stages (workflow_id, name, "order") VALUES (?, 'Stage 1', 1)`, id)
+	database.DB.Exec(`INSERT INTO workflows (user_id, name) VALUES (1, 'Test Workflow 1')`)
 
 	req, _ := http.NewRequest("GET", "/api/workflows", nil)
 	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
+	r.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
 	}
 
 	var workflows []models.Workflow
@@ -83,26 +80,27 @@ func TestGetWorkflows(t *testing.T) {
 }
 
 func TestUpdateWorkflow(t *testing.T) {
-	clearWorkflowsTable()
-	router := setupWorkflowRouter()
+	testutils.ClearDB()
+	setupTestUser()
+	r := setupWorkflowRouter()
 
-	res, _ := database.DB.Exec(`INSERT INTO workflows (name) VALUES ('Old Workflow')`)
-	id, _ := res.LastInsertId()
+	var id int
+	database.DB.QueryRow(`INSERT INTO workflows (user_id, name) VALUES (1, 'Test Workflow 1') RETURNING id`).Scan(&id)
 
 	workflow := models.Workflow{
 		Name: "Updated Workflow",
 		Stages: []models.WorkflowStage{
-			{Name: "New Stage 1"},
+			{Name: "Stage 1", Order: 1},
 		},
 	}
 	body, _ := json.Marshal(workflow)
-	req, _ := http.NewRequest("PUT", "/api/workflows/"+strconv.Itoa(int(id)), bytes.NewBuffer(body))
+	req, _ := http.NewRequest("PUT", "/api/workflows/"+strconv.Itoa(id), bytes.NewBuffer(body))
 	
 	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
+	r.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
 	}
 
 	var responseWorkflow models.Workflow
@@ -113,22 +111,23 @@ func TestUpdateWorkflow(t *testing.T) {
 }
 
 func TestDeleteWorkflow(t *testing.T) {
-	clearWorkflowsTable()
-	router := setupWorkflowRouter()
+	testutils.ClearDB()
+	setupTestUser()
+	r := setupWorkflowRouter()
 
-	res, _ := database.DB.Exec(`INSERT INTO workflows (name) VALUES ('Test Workflow')`)
-	id, _ := res.LastInsertId()
+	var id int
+	database.DB.QueryRow(`INSERT INTO workflows (user_id, name) VALUES (1, 'Test Workflow 1') RETURNING id`).Scan(&id)
 
-	req, _ := http.NewRequest("DELETE", "/api/workflows/"+strconv.Itoa(int(id)), nil)
+	req, _ := http.NewRequest("DELETE", "/api/workflows/"+strconv.Itoa(id), nil)
 	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
+	r.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusNoContent {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
+	if rr.Code != http.StatusNoContent {
+		t.Errorf("Expected status code %d, got %d", http.StatusNoContent, rr.Code)
 	}
 
 	var count int
-	database.DB.QueryRow("SELECT COUNT(*) FROM workflows WHERE id = ?", id).Scan(&count)
+	database.DB.QueryRow("SELECT COUNT(*) FROM workflows WHERE id = $1", id).Scan(&count)
 	if count != 0 {
 		t.Errorf("expected 0 workflows, got %v", count)
 	}

@@ -5,40 +5,37 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strconv"
 	"testing"
+
 	"todo-backend/database"
 	"todo-backend/models"
+	"todo-backend/testutils"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func TestMain(m *testing.M) {
-	database.InitTestDB()
-	code := m.Run()
-	database.DB.Close()
-	os.Exit(code)
-}
-
-func clearTodosTable() {
-	database.DB.Exec("DELETE FROM todos")
-}
-
-func setupRouter() *chi.Mux {
+func setupTodoRouter() *chi.Mux {
 	r := chi.NewRouter()
-	r.Get("/api/todos", GetTodos)
-	r.Get("/api/todos/{id}", GetTodo)
-	r.Post("/api/todos", CreateTodo)
-	r.Put("/api/todos/{id}", UpdateTodo)
-	r.Delete("/api/todos/{id}", DeleteTodo)
-	r.Patch("/api/todos/{id}/toggle", ToggleTodo)
+	r.Get("/api/todos", testutils.AuthContext(1, todoHandler.GetTodos))
+	r.Get("/api/todos/{id}", testutils.AuthContext(1, todoHandler.GetTodo))
+	r.Post("/api/todos", testutils.AuthContext(1, todoHandler.CreateTodo))
+	r.Post("/api/todos/{parent_id}/subtasks", testutils.AuthContext(1, todoHandler.CreateSubtask))
+	r.Put("/api/todos/{id}", testutils.AuthContext(1, todoHandler.UpdateTodo))
+	r.Delete("/api/todos/{id}", testutils.AuthContext(1, todoHandler.DeleteTodo))
+	r.Patch("/api/todos/{id}/toggle", testutils.AuthContext(1, todoHandler.ToggleTodo))
+	r.Get("/api/todos/stage", testutils.AuthContext(1, todoHandler.GetTodosByStage))
 	return r
 }
 
+func setupTestUser() {
+	database.DB.Exec("INSERT INTO users (id, email, password_hash) VALUES (1, 'test@example.com', 'hash') ON CONFLICT DO NOTHING")
+}
+
 func TestCreateTodo(t *testing.T) {
-	clearTodosTable()
-	router := setupRouter()
+	testutils.ClearDB()
+	setupTestUser()
+	r := setupTodoRouter()
 
 	todo := models.Todo{
 		Title:   "Test Todo",
@@ -50,10 +47,10 @@ func TestCreateTodo(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
+	r.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusCreated {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
+	if rr.Code != http.StatusCreated {
+		t.Errorf("Expected status code %d, got %d. Body: %s", http.StatusCreated, rr.Code, rr.Body.String())
 	}
 
 	var responseTodo models.Todo
@@ -67,17 +64,18 @@ func TestCreateTodo(t *testing.T) {
 }
 
 func TestGetTodos(t *testing.T) {
-	clearTodosTable()
-	router := setupRouter()
+	testutils.ClearDB()
+	setupTestUser()
+	r := setupTodoRouter()
 
-	database.DB.Exec(`INSERT INTO todos (title, content, stage, completed) VALUES ('Test Todo 1', 'Test Content', 'To Do', false)`)
+	database.DB.Exec(`INSERT INTO todos (user_id, title, content, stage, completed) VALUES (1, 'Test Todo 1', 'Test Content', 'To Do', false)`)
 
 	req, _ := http.NewRequest("GET", "/api/todos", nil)
 	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
+	r.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
 	}
 
 	var todos []models.Todo
@@ -87,25 +85,40 @@ func TestGetTodos(t *testing.T) {
 	}
 }
 
-func TestUpdateTodo(t *testing.T) {
-	clearTodosTable()
-	router := setupRouter()
+func TestGetTodos_Unauthorized(t *testing.T) {
+	// If AuthContext is not used, it should return 401
+	r := chi.NewRouter()
+	r.Get("/api/todos", todoHandler.GetTodos)
 
-	res, _ := database.DB.Exec(`INSERT INTO todos (title, stage, completed) VALUES ('Test Todo 1', 'To Do', false)`)
-	id, _ := res.LastInsertId()
+	req, _ := http.NewRequest("GET", "/api/todos", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status code %d, got %d", http.StatusUnauthorized, rr.Code)
+	}
+}
+
+func TestUpdateTodo(t *testing.T) {
+	testutils.ClearDB()
+	setupTestUser()
+	r := setupTodoRouter()
+
+	var id int
+	database.DB.QueryRow(`INSERT INTO todos (user_id, title, stage, completed) VALUES (1, 'Test Todo 1', 'To Do', false) RETURNING id`).Scan(&id)
 
 	todo := models.Todo{
 		Title: "Updated Todo",
 		Stage: "In Progress",
 	}
 	body, _ := json.Marshal(todo)
-	req, _ := http.NewRequest("PUT", "/api/todos/"+strconv.Itoa(int(id)), bytes.NewBuffer(body))
+	req, _ := http.NewRequest("PUT", "/api/todos/"+strconv.Itoa(id), bytes.NewBuffer(body))
 	
 	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
+	r.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
 	}
 
 	var responseTodo models.Todo
@@ -116,18 +129,19 @@ func TestUpdateTodo(t *testing.T) {
 }
 
 func TestToggleTodo(t *testing.T) {
-	clearTodosTable()
-	router := setupRouter()
+	testutils.ClearDB()
+	setupTestUser()
+	r := setupTodoRouter()
 
-	res, _ := database.DB.Exec(`INSERT INTO todos (title, stage, completed) VALUES ('Test Todo 1', 'To Do', false)`)
-	id, _ := res.LastInsertId()
+	var id int
+	database.DB.QueryRow(`INSERT INTO todos (user_id, title, stage, completed) VALUES (1, 'Test Todo 1', 'To Do', false) RETURNING id`).Scan(&id)
 
-	req, _ := http.NewRequest("PATCH", "/api/todos/"+strconv.Itoa(int(id))+"/toggle", nil)
+	req, _ := http.NewRequest("PATCH", "/api/todos/"+strconv.Itoa(id)+"/toggle", nil)
 	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
+	r.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
 	}
 
 	var responseTodo models.Todo
@@ -138,23 +152,54 @@ func TestToggleTodo(t *testing.T) {
 }
 
 func TestDeleteTodo(t *testing.T) {
-	clearTodosTable()
-	router := setupRouter()
+	testutils.ClearDB()
+	setupTestUser()
+	r := setupTodoRouter()
 
-	res, _ := database.DB.Exec(`INSERT INTO todos (title, stage, completed) VALUES ('Test Todo 1', 'To Do', false)`)
-	id, _ := res.LastInsertId()
+	var id int
+	database.DB.QueryRow(`INSERT INTO todos (user_id, title, stage, completed) VALUES (1, 'Test Todo 1', 'To Do', false) RETURNING id`).Scan(&id)
 
-	req, _ := http.NewRequest("DELETE", "/api/todos/"+strconv.Itoa(int(id)), nil)
+	req, _ := http.NewRequest("DELETE", "/api/todos/"+strconv.Itoa(id), nil)
 	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
+	r.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusNoContent {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
+	if rr.Code != http.StatusNoContent {
+		t.Errorf("Expected status code %d, got %d", http.StatusNoContent, rr.Code)
 	}
 
 	var count int
-	database.DB.QueryRow("SELECT COUNT(*) FROM todos WHERE id = ?", id).Scan(&count)
+	database.DB.QueryRow("SELECT COUNT(*) FROM todos WHERE id = $1", id).Scan(&count)
 	if count != 0 {
 		t.Errorf("expected 0 todos, got %v", count)
+	}
+}
+
+func TestCreateSubtask(t *testing.T) {
+	testutils.ClearDB()
+	setupTestUser()
+	r := setupTodoRouter()
+
+	var parentID int
+	database.DB.QueryRow(`INSERT INTO todos (user_id, title, stage, completed) VALUES (1, 'Parent', 'To Do', false) RETURNING id`).Scan(&parentID)
+
+	todo := models.Todo{
+		Title: "Subtask",
+		Stage: "To Do",
+	}
+	body, _ := json.Marshal(todo)
+	req, _ := http.NewRequest("POST", "/api/todos/"+strconv.Itoa(parentID)+"/subtasks", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Errorf("Expected status code %d, got %d. Body: %s", http.StatusCreated, rr.Code, rr.Body.String())
+	}
+
+	var responseTodo models.Todo
+	json.NewDecoder(rr.Body).Decode(&responseTodo)
+	if *responseTodo.ParentID != parentID {
+		t.Errorf("expected parent ID to be %v, got %v", parentID, responseTodo.ParentID)
 	}
 }
