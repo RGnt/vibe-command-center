@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -55,6 +54,25 @@ func main() {
 	r.Put("/api/projects/{id}", handlers.UpdateProject)
 	r.Delete("/api/projects/{id}", handlers.DeleteProject)
 
+	// Serve static files from the uploads directory
+	fs := http.FileServer(http.Dir("./uploads"))
+	r.Handle("/uploads/*", http.StripPrefix("/uploads/", fs))
+
+	// Upload route
+	r.Post("/api/upload", handlers.UploadFile)
+
+	// Icon routes
+	r.Get("/api/icons", handlers.GetIcons)
+	r.Put("/api/icons/{id}", handlers.UpdateIcon)
+	r.Delete("/api/icons/{id}", handlers.DeleteIcon)
+
+	// Diagram routes
+	r.Get("/api/diagrams", handlers.GetDiagrams)
+	r.Get("/api/diagrams/{id}", handlers.GetDiagram)
+	r.Post("/api/diagrams", handlers.CreateDiagram)
+	r.Put("/api/diagrams/{id}", handlers.UpdateDiagram)
+	r.Delete("/api/diagrams/{id}", handlers.DeleteDiagram)
+
 	// Wiki routes
 	r.Get("/api/wikis", handlers.GetWikis)
 	r.Get("/api/wikis/{slug}", handlers.GetWiki)
@@ -65,6 +83,6 @@ func main() {
 	// Kanban routes
 	r.Get("/api/todos/stage", handlers.GetTodosByStage)
 
-	fmt.Println("Server starting on port 8080...")
+	log.Println("Server starting on :8080...")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }

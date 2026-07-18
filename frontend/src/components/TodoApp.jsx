@@ -3,6 +3,7 @@ import KanbanBoard from './KanbanBoard';
 import Sidebar from './Sidebar';
 import ProjectModal from './ProjectModal';
 import WikiView from './WikiView';
+import MermaidEditor from './mermaid-editor/MermaidEditor';
 import { useTheme } from '../contexts/ThemeContext';
 
 const TodoApp = () => {
@@ -223,7 +224,11 @@ const TodoApp = () => {
             />
             
             <main className="flex-1 flex flex-col h-full overflow-hidden">
-                {activeProject === 'global-wiki' ? (
+                {activeProject === 'mermaid-editor' ? (
+                    <div className="flex-1 overflow-hidden">
+                        <MermaidEditor />
+                    </div>
+                ) : activeProject === 'global-wiki' ? (
                     <div className="flex-1 overflow-hidden p-6">
                         <WikiView project={null} isGlobal={true} />
                     </div>

@@ -27,6 +27,8 @@ services:
       dockerfile: Dockerfile
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER:-todo_user}:${POSTGRES_PASSWORD:-todo_password}@db:5432/${POSTGRES_DB:-todo_db}?sslmode=disable
+    volumes:
+      - ./data/uploads:/app/uploads
     depends_on:
       - db
     # Note: Not exposing ports to the host. Only accessible within the Docker network via the frontend proxy.

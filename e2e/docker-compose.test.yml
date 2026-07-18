@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  db:
+    build:
+      context: ../database
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_USER: todo_test_user
+      POSTGRES_PASSWORD: todo_test_password
+      POSTGRES_DB: todo_test_db
+    # Not mounting volumes to ensure fresh DB
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgres://todo_test_user:todo_test_password@db:5432/todo_test_db?sslmode=disable
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8089:80"
+    depends_on:
+      - backend

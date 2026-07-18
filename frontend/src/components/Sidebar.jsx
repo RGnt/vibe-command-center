@@ -31,6 +31,23 @@ const Sidebar = ({ projects, activeProject, onSelectProject, onNewProject, onTog
                 </div>
 
                 <div>
+                    <div className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2 px-2">Tools</div>
+                    <button
+                        onClick={() => onSelectProject('mermaid-editor')}
+                        className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-3 transition-all duration-200 border-l-4 ${
+                            activeProject === 'mermaid-editor'
+                                ? 'bg-accent/10 border-accent text-accent font-semibold shadow-inner' 
+                                : 'border-transparent text-text-base hover:bg-bg-hover hover:text-text-base'
+                        }`}
+                    >
+                        <svg className={`w-4 h-4 ${activeProject === 'mermaid-editor' ? 'text-accent' : 'text-text-muted'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                        <span>Mermaid Editor</span>
+                    </button>
+                </div>
+
+                <div>
                     <div className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2 px-2">Projects</div>
                 
                 {projects.map(project => (

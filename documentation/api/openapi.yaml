@@ -201,6 +201,222 @@ paths:
         '204':
           description: Workflow deleted successfully
 
+  /wikis:
+    get:
+      summary: Get all wiki pages
+      parameters:
+        - in: query
+          name: project_id
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A list of wiki pages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WikiPage'
+    post:
+      summary: Create a new wiki page
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WikiPageInput'
+      responses:
+        '201':
+          description: Created wiki page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WikiPage'
+  /wikis/{slug}:
+    get:
+      summary: Get a specific wiki page by slug
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The wiki page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WikiPage'
+    put:
+      summary: Update a wiki page
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WikiPageInput'
+      responses:
+        '200':
+          description: Updated wiki page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WikiPage'
+    delete:
+      summary: Delete a wiki page
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted successfully
+
+  /diagrams:
+    get:
+      summary: Get all diagrams
+      responses:
+        '200':
+          description: A list of diagrams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Diagram'
+    post:
+      summary: Create a new diagram
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiagramInput'
+      responses:
+        '201':
+          description: Created diagram
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Diagram'
+
+  /diagrams/{id}:
+    get:
+      summary: Get a diagram by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: The diagram
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Diagram'
+    put:
+      summary: Update a diagram
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiagramInput'
+      responses:
+        '200':
+          description: Updated diagram
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Diagram'
+    delete:
+      summary: Delete a diagram
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted successfully
+
+  /icons:
+    get:
+      summary: Get all custom icons
+      responses:
+        '200':
+          description: A list of custom icons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Icon'
+  /icons/{id}:
+    put:
+      summary: Update an icon's name or folder
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IconUpdateInput'
+      responses:
+        '200':
+          description: Updated icon
+    delete:
+      summary: Delete an icon
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted successfully
+
+  /upload:
+    post:
+      summary: Upload a new icon image
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Upload successful
+
 components:
   schemas:
     TodoInput:
@@ -281,3 +497,99 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/WorkflowStage'
+
+    WikiPageInput:
+      type: object
+      required:
+        - title
+        - slug
+      properties:
+        title:
+          type: string
+        slug:
+          type: string
+        content:
+          type: string
+        category:
+          type: string
+        project_id:
+          type: integer
+
+    WikiPage:
+      type: object
+      properties:
+        id:
+          type: integer
+        project_id:
+          type: integer
+        category:
+          type: string
+        title:
+          type: string
+        slug:
+          type: string
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    DiagramInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        diagram_type:
+          type: string
+        code:
+          type: string
+        explanation:
+          type: string
+
+    Diagram:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        diagram_type:
+          type: string
+        code:
+          type: string
+        explanation:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    IconUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+        folder:
+          type: string
+
+    Icon:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        url:
+          type: string
+        folder:
+          type: string
+        created_at:
+          type: string
+          format: date-time

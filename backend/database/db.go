@@ -117,6 +117,35 @@ func createTables() {
 		log.Fatal("Failed to create wiki_pages table:", err)
 	}
 
+	// Create icons table
+	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS icons (
+		id SERIAL PRIMARY KEY,
+		name TEXT NOT NULL,
+		url TEXT NOT NULL,
+		folder TEXT DEFAULT 'General',
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`)
+	if err != nil {
+		log.Fatal("Failed to create icons table:", err)
+	}
+	
+	// Add folder column if it doesn't exist (for existing tables)
+	_, _ = DB.Exec(`ALTER TABLE icons ADD COLUMN IF NOT EXISTS folder TEXT DEFAULT 'General'`)
+
+	// Create diagrams table
+	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS diagrams (
+		id SERIAL PRIMARY KEY,
+		name TEXT NOT NULL,
+		diagram_type TEXT DEFAULT 'graph TD',
+		code TEXT DEFAULT '',
+		explanation TEXT DEFAULT '',
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`)
+	if err != nil {
+		log.Fatal("Failed to create diagrams table:", err)
+	}
+
 	// Insert default data if tables are empty
 	insertDefaultData()
 }

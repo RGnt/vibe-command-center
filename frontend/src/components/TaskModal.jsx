@@ -103,7 +103,7 @@ const TaskModal = ({ isOpen, onClose, onSave, onAddSubtask, onToggleSubtask, onD
                                 <textarea
                                     value={content}
                                     onChange={(e) => setContent(e.target.value)}
-                                    placeholder="Add more details using Markdown, tables, or math formulas ($E=mc^2$)..."
+                                    placeholder="Add more details using Markdown, tables, Mermaid diagrams, or math formulas ($E=mc^2$)..."
                                     className="w-full p-3 rounded-lg bg-bg-base border border-border text-text-base focus:outline-none focus:ring-2 focus:ring-primary placeholder-text-muted min-h-[160px] resize-y font-mono text-sm"
                                 />
                             ) : (
