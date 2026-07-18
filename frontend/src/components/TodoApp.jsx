@@ -92,7 +92,7 @@ const TodoApp = () => {
         } else if (activeProject === 'global-wiki') {
             setActiveTab('wiki');
         }
-    }, [activeProject, fetchTodos, activeTab, projects]);
+    }, [activeProject, fetchTodos]);
 
     const handleCreateProject = async (projectData) => {
         try {
