@@ -25,7 +25,7 @@ func GetWikis(w http.ResponseWriter, r *http.Request) {
 
 	if projectIDStr != "" {
 		projectID, _ := strconv.Atoi(projectIDStr)
-		rows, err = database.DB.Query(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE project_id = ? ORDER BY category, title`, projectID)
+		rows, err = database.DB.Query(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE project_id = $1 ORDER BY category, title`, projectID)
 	} else {
 		rows, err = database.DB.Query(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE project_id IS NULL ORDER BY category, title`)
 	}
@@ -40,7 +40,7 @@ func GetWikis(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var p models.WikiPage
 		var projectID sql.NullInt64
-		var createdAt, updatedAt string
+		var createdAt, updatedAt time.Time
 
 		err := rows.Scan(&p.ID, &projectID, &p.Category, &p.Title, &p.Slug, &p.Content, &createdAt, &updatedAt)
 		if err != nil {
@@ -48,8 +48,8 @@ func GetWikis(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		p.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
-		p.UpdatedAt, _ = time.Parse("2006-01-02 15:04:05", updatedAt)
+		p.CreatedAt = createdAt
+		p.UpdatedAt = updatedAt
 		
 		if projectID.Valid {
 			pid := int(projectID.Int64)
@@ -72,9 +72,9 @@ func GetWiki(w http.ResponseWriter, r *http.Request) {
 
 	var p models.WikiPage
 	var projectID sql.NullInt64
-	var createdAt, updatedAt string
+	var createdAt, updatedAt time.Time
 
-	err := database.DB.QueryRow(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE slug = ?`, slug).
+	err := database.DB.QueryRow(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE slug = $1`, slug).
 		Scan(&p.ID, &projectID, &p.Category, &p.Title, &p.Slug, &p.Content, &createdAt, &updatedAt)
 		
 	if err != nil {
@@ -86,8 +86,8 @@ func GetWiki(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
-	p.UpdatedAt, _ = time.Parse("2006-01-02 15:04:05", updatedAt)
+	p.CreatedAt = createdAt
+	p.UpdatedAt = updatedAt
 
 	if projectID.Valid {
 		pid := int(projectID.Int64)
@@ -109,14 +109,14 @@ func CreateWiki(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	query := `INSERT INTO wiki_pages (project_id, category, title, slug, content) VALUES (?, ?, ?, ?, ?)`
-	result, err := database.DB.Exec(query, p.ProjectID, p.Category, p.Title, p.Slug, p.Content)
+	var id int64
+	query := `INSERT INTO wiki_pages (project_id, category, title, slug, content) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	err := database.DB.QueryRow(query, p.ProjectID, p.Category, p.Title, p.Slug, p.Content).Scan(&id)
 	if err != nil {
 		http.Error(w, "Failed to create wiki page (slug might not be unique)", http.StatusInternalServerError)
 		return
 	}
 
-	id, _ := result.LastInsertId()
 	p.ID = int(id)
 	p.CreatedAt = time.Now()
 	p.UpdatedAt = p.CreatedAt
@@ -143,7 +143,7 @@ func UpdateWiki(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	query := `UPDATE wiki_pages SET category = ?, title = ?, slug = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+	query := `UPDATE wiki_pages SET category = $1, title = $2, slug = $3, content = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5`
 	_, err = database.DB.Exec(query, p.Category, p.Title, p.Slug, p.Content, id)
 	if err != nil {
 		http.Error(w, "Failed to update wiki page", http.StatusInternalServerError)
@@ -168,7 +168,7 @@ func DeleteWiki(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	_, err = database.DB.Exec("DELETE FROM wiki_pages WHERE id = ?", id)
+	_, err = database.DB.Exec("DELETE FROM wiki_pages WHERE id = $1", id)
 	if err != nil {
 		http.Error(w, "Failed to delete wiki page", http.StatusInternalServerError)
 		return

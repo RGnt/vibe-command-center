@@ -45,3 +45,4 @@ frontend/build/
 # Database files
 backend/*.db
 backend/*.sqlite3
+data/

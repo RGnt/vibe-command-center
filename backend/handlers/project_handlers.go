@@ -29,18 +29,14 @@ func GetProjects(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var project models.Project
 		var workflowID sql.NullInt64
-		var createdAt string
+		var createdAt time.Time
 
 		err := rows.Scan(&project.ID, &project.Name, &project.Description, &workflowID, &createdAt)
 		if err != nil {
 			http.Error(w, "Failed to scan project", http.StatusInternalServerError)
 			return
 		}
-
-		t, err := time.Parse("2006-01-02 15:04:05", createdAt)
-		if err == nil {
-			project.CreatedAt = t
-		}
+		project.CreatedAt = createdAt
 
 		if workflowID.Valid {
 			wid := int(workflowID.Int64)
@@ -67,9 +63,9 @@ func GetProject(w http.ResponseWriter, r *http.Request) {
 
 	var project models.Project
 	var workflowID sql.NullInt64
-	var createdAt string
+	var createdAt time.Time
 
-	err = database.DB.QueryRow(`SELECT id, name, description, workflow_id, created_at FROM projects WHERE id = ?`, id).Scan(&project.ID, &project.Name, &project.Description, &workflowID, &createdAt)
+	err = database.DB.QueryRow(`SELECT id, name, description, workflow_id, created_at FROM projects WHERE id = $1`, id).Scan(&project.ID, &project.Name, &project.Description, &workflowID, &createdAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Project not found", http.StatusNotFound)
@@ -78,11 +74,7 @@ func GetProject(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
-	t, err := time.Parse("2006-01-02 15:04:05", createdAt)
-	if err == nil {
-		project.CreatedAt = t
-	}
+	project.CreatedAt = createdAt
 
 	if workflowID.Valid {
 		wid := int(workflowID.Int64)
@@ -104,16 +96,11 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	query := `INSERT INTO projects (name, description, workflow_id) VALUES (?, ?, ?)`
-	result, err := database.DB.Exec(query, project.Name, project.Description, project.WorkflowID)
+	var id int64
+	query := `INSERT INTO projects (name, description, workflow_id) VALUES ($1, $2, $3) RETURNING id`
+	err := database.DB.QueryRow(query, project.Name, project.Description, project.WorkflowID).Scan(&id)
 	if err != nil {
 		http.Error(w, "Failed to create project", http.StatusInternalServerError)
-		return
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		http.Error(w, "Failed to get project ID", http.StatusInternalServerError)
 		return
 	}
 
@@ -142,7 +129,7 @@ func UpdateProject(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	query := `UPDATE projects SET name = ?, description = ?, workflow_id = ? WHERE id = ?`
+	query := `UPDATE projects SET name = $1, description = $2, workflow_id = $3 WHERE id = $4`
 	_, err = database.DB.Exec(query, updatedProject.Name, updatedProject.Description, updatedProject.WorkflowID, id)
 	if err != nil {
 		http.Error(w, "Failed to update project", http.StatusInternalServerError)
@@ -166,7 +153,7 @@ func DeleteProject(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	_, err = database.DB.Exec("DELETE FROM projects WHERE id = ?", id)
+	_, err = database.DB.Exec("DELETE FROM projects WHERE id = $1", id)
 	if err != nil {
 		http.Error(w, "Failed to delete project", http.StatusInternalServerError)
 		return

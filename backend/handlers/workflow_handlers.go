@@ -27,20 +27,16 @@ func GetWorkflows(w http.ResponseWriter, r *http.Request) {
 	var workflows []models.Workflow
 	for rows.Next() {
 		var workflow models.Workflow
-		var createdAt string
+		var createdAt time.Time
 
 		err := rows.Scan(&workflow.ID, &workflow.Name, &createdAt)
 		if err != nil {
 			http.Error(w, "Failed to scan workflow", http.StatusInternalServerError)
 			return
 		}
+		workflow.CreatedAt = createdAt
 
-		t, err := time.Parse("2006-01-02 15:04:05", createdAt)
-		if err == nil {
-			workflow.CreatedAt = t
-		}
-
-		stageRows, err := database.DB.Query(`SELECT id, name, "order" FROM workflow_stages WHERE workflow_id = ? ORDER BY "order"`, workflow.ID)
+		stageRows, err := database.DB.Query(`SELECT id, name, "order" FROM workflow_stages WHERE workflow_id = $1 ORDER BY "order"`, workflow.ID)
 		if err != nil {
 			http.Error(w, "Failed to fetch workflow stages", http.StatusInternalServerError)
 			return
@@ -77,21 +73,16 @@ func CreateWorkflow(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	query := `INSERT INTO workflows (name) VALUES (?)`
-	result, err := database.DB.Exec(query, workflow.Name)
+	var id int64
+	query := `INSERT INTO workflows (name) VALUES ($1) RETURNING id`
+	err := database.DB.QueryRow(query, workflow.Name).Scan(&id)
 	if err != nil {
 		http.Error(w, "Failed to create workflow", http.StatusInternalServerError)
 		return
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		http.Error(w, "Failed to get workflow ID", http.StatusInternalServerError)
-		return
-	}
-
 	for i, stage := range workflow.Stages {
-		stageQuery := `INSERT INTO workflow_stages (workflow_id, name, "order") VALUES (?, ?, ?)`
+		stageQuery := `INSERT INTO workflow_stages (workflow_id, name, "order") VALUES ($1, $2, $3)`
 		_, err := database.DB.Exec(stageQuery, id, stage.Name, i+1)
 		if err != nil {
 			http.Error(w, "Failed to create workflow stage", http.StatusInternalServerError)
@@ -100,20 +91,16 @@ func CreateWorkflow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var createdWorkflow models.Workflow
-	var createdAt string
+	var createdAt time.Time
 
-	err = database.DB.QueryRow(`SELECT id, name, created_at FROM workflows WHERE id = ?`, id).Scan(&createdWorkflow.ID, &createdWorkflow.Name, &createdAt)
+	err = database.DB.QueryRow(`SELECT id, name, created_at FROM workflows WHERE id = $1`, id).Scan(&createdWorkflow.ID, &createdWorkflow.Name, &createdAt)
 	if err != nil {
 		http.Error(w, "Failed to fetch created workflow", http.StatusInternalServerError)
 		return
 	}
+	createdWorkflow.CreatedAt = createdAt
 
-	t, err := time.Parse("2006-01-02 15:04:05", createdAt)
-	if err == nil {
-		createdWorkflow.CreatedAt = t
-	}
-
-	stageRows, err := database.DB.Query(`SELECT id, name, "order" FROM workflow_stages WHERE workflow_id = ? ORDER BY "order"`, id)
+	stageRows, err := database.DB.Query(`SELECT id, name, "order" FROM workflow_stages WHERE workflow_id = $1 ORDER BY "order"`, id)
 	if err != nil {
 		http.Error(w, "Failed to fetch workflow stages", http.StatusInternalServerError)
 		return
@@ -154,20 +141,20 @@ func UpdateWorkflow(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	_, err = database.DB.Exec("UPDATE workflows SET name = ? WHERE id = ?", updatedWorkflow.Name, id)
+	_, err = database.DB.Exec("UPDATE workflows SET name = $1 WHERE id = $2", updatedWorkflow.Name, id)
 	if err != nil {
 		http.Error(w, "Failed to update workflow", http.StatusInternalServerError)
 		return
 	}
 
-	_, err = database.DB.Exec("DELETE FROM workflow_stages WHERE workflow_id = ?", id)
+	_, err = database.DB.Exec("DELETE FROM workflow_stages WHERE workflow_id = $1", id)
 	if err != nil {
 		http.Error(w, "Failed to delete workflow stages", http.StatusInternalServerError)
 		return
 	}
 
 	for i, stage := range updatedWorkflow.Stages {
-		stageQuery := `INSERT INTO workflow_stages (workflow_id, name, "order") VALUES (?, ?, ?)`
+		stageQuery := `INSERT INTO workflow_stages (workflow_id, name, "order") VALUES ($1, $2, $3)`
 		_, err := database.DB.Exec(stageQuery, id, stage.Name, i+1)
 		if err != nil {
 			http.Error(w, "Failed to create workflow stage", http.StatusInternalServerError)
@@ -176,20 +163,16 @@ func UpdateWorkflow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var workflow models.Workflow
-	var createdAt string
+	var createdAt time.Time
 
-	err = database.DB.QueryRow(`SELECT id, name, created_at FROM workflows WHERE id = ?`, id).Scan(&workflow.ID, &workflow.Name, &createdAt)
+	err = database.DB.QueryRow(`SELECT id, name, created_at FROM workflows WHERE id = $1`, id).Scan(&workflow.ID, &workflow.Name, &createdAt)
 	if err != nil {
 		http.Error(w, "Failed to fetch updated workflow", http.StatusInternalServerError)
 		return
 	}
+	workflow.CreatedAt = createdAt
 
-	t, err := time.Parse("2006-01-02 15:04:05", createdAt)
-	if err == nil {
-		workflow.CreatedAt = t
-	}
-
-	stageRows, err := database.DB.Query(`SELECT id, name, "order" FROM workflow_stages WHERE workflow_id = ? ORDER BY "order"`, id)
+	stageRows, err := database.DB.Query(`SELECT id, name, "order" FROM workflow_stages WHERE workflow_id = $1 ORDER BY "order"`, id)
 	if err != nil {
 		http.Error(w, "Failed to fetch workflow stages", http.StatusInternalServerError)
 		return
@@ -223,7 +206,7 @@ func DeleteWorkflow(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	_, err = database.DB.Exec("DELETE FROM workflows WHERE id = ?", id)
+	_, err = database.DB.Exec("DELETE FROM workflows WHERE id = $1", id)
 	if err != nil {
 		http.Error(w, "Failed to delete workflow", http.StatusInternalServerError)
 		return

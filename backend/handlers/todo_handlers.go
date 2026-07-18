@@ -26,7 +26,7 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 	if projectIDStr != "" {
 		projectID, _ := strconv.Atoi(projectIDStr)
 		rows, err = database.DB.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
-			FROM todos WHERE parent_id IS NULL AND project_id = ? ORDER BY created_at DESC`, projectID)
+			FROM todos WHERE parent_id IS NULL AND project_id = $1 ORDER BY created_at DESC`, projectID)
 	} else {
 		rows, err = database.DB.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
 			FROM todos WHERE parent_id IS NULL ORDER BY created_at DESC`)
@@ -43,7 +43,7 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 		var todo models.Todo
 		var parentID sql.NullInt64
 		var projectID sql.NullInt64
-		var createdAt string
+		var createdAt time.Time
 
 		err := rows.Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage)
 		if err != nil {
@@ -51,10 +51,7 @@ func GetTodos(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		t, err := time.Parse("2006-01-02 15:04:05", createdAt)
-		if err == nil {
-			todo.CreatedAt = t
-		}
+		todo.CreatedAt = createdAt
 
 		if parentID.Valid {
 			pid := int(parentID.Int64)
@@ -94,10 +91,10 @@ func GetTodo(w http.ResponseWriter, r *http.Request) {
 	var todo models.Todo
 	var parentID sql.NullInt64
 	var projectID sql.NullInt64
-	var createdAt string
+	var createdAt time.Time
 
 	err = database.DB.QueryRow(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
-		FROM todos WHERE id = ?`, id).Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage)
+		FROM todos WHERE id = $1`, id).Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Todo not found", http.StatusNotFound)
@@ -107,10 +104,7 @@ func GetTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, err := time.Parse("2006-01-02 15:04:05", createdAt)
-	if err == nil {
-		todo.CreatedAt = t
-	}
+	todo.CreatedAt = createdAt
 
 	if parentID.Valid {
 		pid := int(parentID.Int64)
@@ -134,7 +128,7 @@ func GetTodo(w http.ResponseWriter, r *http.Request) {
 // getSubtasks is a helper function to get subtasks
 func getSubtasks(parentID int) ([]models.Todo, error) {
 	rows, err := database.DB.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
-		FROM todos WHERE parent_id = ? ORDER BY created_at DESC`, parentID)
+		FROM todos WHERE parent_id = $1 ORDER BY created_at DESC`, parentID)
 	if err != nil {
 		return nil, err
 	}
@@ -144,17 +138,14 @@ func getSubtasks(parentID int) ([]models.Todo, error) {
 	for rows.Next() {
 		var todo models.Todo
 		var projectID sql.NullInt64
-		var createdAt string
+		var createdAt time.Time
 
 		err := rows.Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &todo.ParentID, &projectID, &todo.Stage)
 		if err != nil {
 			return nil, err
 		}
 
-		t, err := time.Parse("2006-01-02 15:04:05", createdAt)
-		if err == nil {
-			todo.CreatedAt = t
-		}
+		todo.CreatedAt = createdAt
 		
 		if projectID.Valid {
 			pid := int(projectID.Int64)
@@ -178,35 +169,27 @@ func CreateTodo(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	query := `INSERT INTO todos (title, content, stage, completed, project_id) VALUES (?, ?, ?, ?, ?)`
-	result, err := database.DB.Exec(query, todo.Title, todo.Content, todo.Stage, todo.Completed, todo.ProjectID)
+	var id int64
+	query := `INSERT INTO todos (title, content, stage, completed, project_id) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	err := database.DB.QueryRow(query, todo.Title, todo.Content, todo.Stage, todo.Completed, todo.ProjectID).Scan(&id)
 	if err != nil {
 		http.Error(w, "Failed to create todo", http.StatusInternalServerError)
-		return
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		http.Error(w, "Failed to get todo ID", http.StatusInternalServerError)
 		return
 	}
 
 	var createdTodo models.Todo
 	var parentID sql.NullInt64
 	var projectID sql.NullInt64
-	var createdAt string
+	var createdAt time.Time
 
 	err = database.DB.QueryRow(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
-		FROM todos WHERE id = ?`, id).Scan(&createdTodo.ID, &createdTodo.Title, &createdTodo.Content, &createdTodo.Completed, &createdAt, &parentID, &projectID, &createdTodo.Stage)
+		FROM todos WHERE id = $1`, id).Scan(&createdTodo.ID, &createdTodo.Title, &createdTodo.Content, &createdTodo.Completed, &createdAt, &parentID, &projectID, &createdTodo.Stage)
 	if err != nil {
 		http.Error(w, "Failed to fetch created todo", http.StatusInternalServerError)
 		return
 	}
 
-	t, err := time.Parse("2006-01-02 15:04:05", createdAt)
-	if err == nil {
-		createdTodo.CreatedAt = t
-	}
+	createdTodo.CreatedAt = createdAt
 
 	if parentID.Valid {
 		pid := int(parentID.Int64)
@@ -242,7 +225,7 @@ func CreateSubtask(w http.ResponseWriter, r *http.Request) {
 
 	var exists bool
 	var parentProjectID sql.NullInt64
-	err = database.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM todos WHERE id = ?), project_id FROM todos WHERE id = ?", parentID, parentID).Scan(&exists, &parentProjectID)
+	err = database.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM todos WHERE id = $1), project_id FROM todos WHERE id = $2", parentID, parentID).Scan(&exists, &parentProjectID)
 	if err != nil || !exists {
 		http.Error(w, "Parent todo not found", http.StatusNotFound)
 		return
@@ -256,34 +239,26 @@ func CreateSubtask(w http.ResponseWriter, r *http.Request) {
 		pID = subtask.ProjectID
 	}
 
-	query := `INSERT INTO todos (title, content, parent_id, stage, completed, project_id) VALUES (?, ?, ?, ?, ?, ?)`
-	result, err := database.DB.Exec(query, subtask.Title, subtask.Content, parentID, subtask.Stage, subtask.Completed, pID)
+	var id int64
+	query := `INSERT INTO todos (title, content, parent_id, stage, completed, project_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
+	err = database.DB.QueryRow(query, subtask.Title, subtask.Content, parentID, subtask.Stage, subtask.Completed, pID).Scan(&id)
 	if err != nil {
 		http.Error(w, "Failed to create subtask", http.StatusInternalServerError)
 		return
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		http.Error(w, "Failed to get subtask ID", http.StatusInternalServerError)
-		return
-	}
-
 	var createdSubtask models.Todo
 	var projectID sql.NullInt64
-	var createdAt string
+	var createdAt time.Time
 
 	err = database.DB.QueryRow(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
-		FROM todos WHERE id = ?`, id).Scan(&createdSubtask.ID, &createdSubtask.Title, &createdSubtask.Content, &createdSubtask.Completed, &createdAt, &createdSubtask.ParentID, &projectID, &createdSubtask.Stage)
+		FROM todos WHERE id = $1`, id).Scan(&createdSubtask.ID, &createdSubtask.Title, &createdSubtask.Content, &createdSubtask.Completed, &createdAt, &createdSubtask.ParentID, &projectID, &createdSubtask.Stage)
 	if err != nil {
 		http.Error(w, "Failed to fetch created subtask", http.StatusInternalServerError)
 		return
 	}
 
-	t, err := time.Parse("2006-01-02 15:04:05", createdAt)
-	if err == nil {
-		createdSubtask.CreatedAt = t
-	}
+	createdSubtask.CreatedAt = createdAt
 	
 	if projectID.Valid {
 		pid := int(projectID.Int64)
@@ -312,7 +287,7 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	query := `UPDATE todos SET title = ?, content = ?, completed = ?, stage = ?, project_id = ? WHERE id = ?`
+	query := `UPDATE todos SET title = $1, content = $2, completed = $3, stage = $4, project_id = $5 WHERE id = $6`
 	_, err = database.DB.Exec(query, updatedTodo.Title, updatedTodo.Content, updatedTodo.Completed, updatedTodo.Stage, updatedTodo.ProjectID, id)
 	if err != nil {
 		http.Error(w, "Failed to update todo", http.StatusInternalServerError)
@@ -322,19 +297,16 @@ func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	var todo models.Todo
 	var parentID sql.NullInt64
 	var projectID sql.NullInt64
-	var createdAt string
+	var createdAt time.Time
 
 	err = database.DB.QueryRow(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
-		FROM todos WHERE id = ?`, id).Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage)
+		FROM todos WHERE id = $1`, id).Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage)
 	if err != nil {
 		http.Error(w, "Failed to fetch updated todo", http.StatusInternalServerError)
 		return
 	}
 
-	t, err := time.Parse("2006-01-02 15:04:05", createdAt)
-	if err == nil {
-		todo.CreatedAt = t
-	}
+	todo.CreatedAt = createdAt
 
 	if parentID.Valid {
 		pid := int(parentID.Int64)
@@ -361,7 +333,7 @@ func DeleteTodo(w http.ResponseWriter, r *http.Request) {
 	database.Mutex.Lock()
 	defer database.Mutex.Unlock()
 
-	_, err = database.DB.Exec("DELETE FROM todos WHERE id = ?", id)
+	_, err = database.DB.Exec("DELETE FROM todos WHERE id = $1", id)
 	if err != nil {
 		http.Error(w, "Failed to delete todo", http.StatusInternalServerError)
 		return
@@ -382,14 +354,14 @@ func ToggleTodo(w http.ResponseWriter, r *http.Request) {
 	defer database.Mutex.Unlock()
 
 	var currentCompleted bool
-	err = database.DB.QueryRow("SELECT completed FROM todos WHERE id = ?", id).Scan(&currentCompleted)
+	err = database.DB.QueryRow("SELECT completed FROM todos WHERE id = $1", id).Scan(&currentCompleted)
 	if err != nil {
 		http.Error(w, "Todo not found", http.StatusNotFound)
 		return
 	}
 
 	newCompleted := !currentCompleted
-	_, err = database.DB.Exec("UPDATE todos SET completed = ? WHERE id = ?", newCompleted, id)
+	_, err = database.DB.Exec("UPDATE todos SET completed = $1 WHERE id = $2", newCompleted, id)
 	if err != nil {
 		http.Error(w, "Failed to toggle todo", http.StatusInternalServerError)
 		return
@@ -398,19 +370,16 @@ func ToggleTodo(w http.ResponseWriter, r *http.Request) {
 	var todo models.Todo
 	var parentID sql.NullInt64
 	var projectID sql.NullInt64
-	var createdAt string
+	var createdAt time.Time
 
 	err = database.DB.QueryRow(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
-		FROM todos WHERE id = ?`, id).Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage)
+		FROM todos WHERE id = $1`, id).Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage)
 	if err != nil {
 		http.Error(w, "Failed to fetch updated todo", http.StatusInternalServerError)
 		return
 	}
 
-	t, err := time.Parse("2006-01-02 15:04:05", createdAt)
-	if err == nil {
-		todo.CreatedAt = t
-	}
+	todo.CreatedAt = createdAt
 
 	if parentID.Valid {
 		pid := int(parentID.Int64)
@@ -432,7 +401,7 @@ func GetTodosByStage(w http.ResponseWriter, r *http.Request) {
 	defer database.Mutex.RUnlock()
 
 	var stagesStr string
-	err := database.DB.QueryRow(`SELECT GROUP_CONCAT(name ORDER BY "order") FROM workflow_stages ws 
+	err := database.DB.QueryRow(`SELECT STRING_AGG(name, ',' ORDER BY "order") FROM workflow_stages ws 
 		JOIN workflows w ON ws.workflow_id = w.id WHERE w.name = 'Default Workflow'`).Scan(&stagesStr)
 	
 	stages := []string{"To Do", "In Progress", "Review", "Done"}
@@ -469,7 +438,7 @@ func GetTodosByStage(w http.ResponseWriter, r *http.Request) {
 		var todo models.Todo
 		var parentID sql.NullInt64
 		var projectID sql.NullInt64
-		var createdAt string
+		var createdAt time.Time
 
 		err := rows.Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage)
 		if err != nil {
@@ -477,10 +446,7 @@ func GetTodosByStage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		t, err := time.Parse("2006-01-02 15:04:05", createdAt)
-		if err == nil {
-			todo.CreatedAt = t
-		}
+		todo.CreatedAt = createdAt
 
 		if parentID.Valid {
 			pid := int(parentID.Int64)

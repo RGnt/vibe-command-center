@@ -73,7 +73,7 @@ const KanbanBoard = ({ todos, workflows, activeProjectWorkflowId, onTodoUpdate, 
         };
 
         try {
-            const response = await fetch('http://localhost:8080/api/workflows', {
+            const response = await fetch('/api/workflows', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

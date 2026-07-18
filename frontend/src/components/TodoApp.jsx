@@ -20,7 +20,7 @@ const TodoApp = () => {
     // Fetch projects from backend
     const fetchProjects = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/projects');
+            const response = await fetch('/api/projects');
             if (!response.ok) throw new Error('Failed to fetch projects');
             const data = await response.json();
             setProjects(data || []);
@@ -37,7 +37,7 @@ const TodoApp = () => {
     // Fetch workflows
     const fetchWorkflows = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/workflows');
+            const response = await fetch('/api/workflows');
             if (!response.ok) throw new Error('Failed to fetch workflows');
             const data = await response.json();
             setWorkflows(data || []);
@@ -52,7 +52,7 @@ const TodoApp = () => {
         
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:8080/api/todos?project_id=${activeProject.id}`);
+            const response = await fetch(`/api/todos?project_id=${activeProject.id}`);
             if (!response.ok) throw new Error('Failed to fetch todos');
             const data = await response.json();
             setTodos(data || []);
@@ -95,7 +95,7 @@ const TodoApp = () => {
 
     const handleCreateProject = async (projectData) => {
         try {
-            const response = await fetch('http://localhost:8080/api/projects', {
+            const response = await fetch('/api/projects', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(projectData),
@@ -115,7 +115,7 @@ const TodoApp = () => {
         if (!title.trim() || !activeProject || activeProject === 'global-wiki') return;
 
         try {
-            const response = await fetch('http://localhost:8080/api/todos', {
+            const response = await fetch('/api/todos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title, stage, project_id: activeProject.id }),
@@ -134,7 +134,7 @@ const TodoApp = () => {
         if (!title.trim() || activeProject === 'global-wiki') return;
 
         try {
-            const response = await fetch(`http://localhost:8080/api/todos/${parentId}/subtasks`, {
+            const response = await fetch(`/api/todos/${parentId}/subtasks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title, project_id: activeProject?.id }),
@@ -160,7 +160,7 @@ const TodoApp = () => {
     // Update a todo
     const updateTodo = async (id, updatedTodo) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/todos/${id}`, {
+            const response = await fetch(`/api/todos/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...updatedTodo, project_id: activeProject?.id }),
@@ -177,7 +177,7 @@ const TodoApp = () => {
     // Delete a todo
     const deleteTodo = async (id) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/todos/${id}`, {
+            const response = await fetch(`/api/todos/${id}`, {
                 method: 'DELETE',
             });
 

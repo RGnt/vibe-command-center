@@ -35,8 +35,8 @@ const WikiView = ({ project, isGlobal = false }) => {
         setLoading(true);
         try {
             const url = isGlobal 
-                ? 'http://localhost:8080/api/wikis' 
-                : `http://localhost:8080/api/wikis?project_id=${project.id}`;
+                ? '/api/wikis' 
+                : `/api/wikis?project_id=${project.id}`;
             const response = await fetch(url);
             if (!response.ok) throw new Error('Failed to fetch wiki pages');
             
@@ -83,8 +83,8 @@ const WikiView = ({ project, isGlobal = false }) => {
 
         try {
             const url = activePage 
-                ? `http://localhost:8080/api/wikis/${activePage.id}`
-                : 'http://localhost:8080/api/wikis';
+                ? `/api/wikis/${activePage.id}`
+                : '/api/wikis';
             const method = activePage ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
@@ -109,7 +109,7 @@ const WikiView = ({ project, isGlobal = false }) => {
         if (!window.confirm('Are you sure you want to delete this wiki page?')) return;
 
         try {
-            const response = await fetch(`http://localhost:8080/api/wikis/${activePage.id}`, {
+            const response = await fetch(`/api/wikis/${activePage.id}`, {
                 method: 'DELETE'
             });
 
