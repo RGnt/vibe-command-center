@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgentRouteImport } from './routes/agent'
+import { Route as GraphRouteImport } from './routes/graph'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as MermaidEditorRouteImport } from './routes/mermaid-editor'
 import { Route as WikiRouteImport } from './routes/wiki'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const AgentRoute = AgentRouteImport.update({
   id: '/agent',
   path: '/agent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GraphRoute = GraphRouteImport.update({
+  id: '/graph',
+  path: '/graph',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryRoute = LibraryRouteImport.update({
@@ -56,6 +62,7 @@ const ProjectsProjectIdWikiRoute = ProjectsProjectIdWikiRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agent': typeof AgentRoute
+  '/graph': typeof GraphRoute
   '/library': typeof LibraryRoute
   '/mermaid-editor': typeof MermaidEditorRoute
   '/wiki': typeof WikiRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agent': typeof AgentRoute
+  '/graph': typeof GraphRoute
   '/library': typeof LibraryRoute
   '/mermaid-editor': typeof MermaidEditorRoute
   '/wiki': typeof WikiRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agent': typeof AgentRoute
+  '/graph': typeof GraphRoute
   '/library': typeof LibraryRoute
   '/mermaid-editor': typeof MermaidEditorRoute
   '/wiki': typeof WikiRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agent'
+    | '/graph'
     | '/library'
     | '/mermaid-editor'
     | '/wiki'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/agent'
+    | '/graph'
     | '/library'
     | '/mermaid-editor'
     | '/wiki'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/agent'
+    | '/graph'
     | '/library'
     | '/mermaid-editor'
     | '/wiki'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgentRoute: typeof AgentRoute
+  GraphRoute: typeof GraphRoute
   LibraryRoute: typeof LibraryRoute
   MermaidEditorRoute: typeof MermaidEditorRoute
   WikiRoute: typeof WikiRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/agent'
       fullPath: '/agent'
       preLoaderRoute: typeof AgentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/graph': {
+      id: '/graph'
+      path: '/graph'
+      fullPath: '/graph'
+      preLoaderRoute: typeof GraphRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library': {
@@ -178,6 +198,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentRoute: AgentRoute,
+  GraphRoute: GraphRoute,
   LibraryRoute: LibraryRoute,
   MermaidEditorRoute: MermaidEditorRoute,
   WikiRoute: WikiRoute,

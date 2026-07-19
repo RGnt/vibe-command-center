@@ -65,7 +65,10 @@ func main() {
 
 	libraryRepo := repository.NewLibraryRepository(database.DB)
 	libraryService := service.NewLibraryService(libraryRepo)
-	libraryHandler := handlers.NewLibraryHandler(libraryService, wikiService)
+
+	graphRepo := repository.NewGraphRepository(database.DB)
+	libraryHandler := handlers.NewLibraryHandler(libraryService, wikiService, graphRepo)
+	graphHandler := handlers.NewGraphHandler(graphRepo)
 
 	r := chi.NewRouter()
 
@@ -130,6 +133,9 @@ func main() {
 		r.Get("/api/library/{id}/download", libraryHandler.DownloadDocument)
 		r.Delete("/api/library/{id}", libraryHandler.DeleteDocument)
 		r.Post("/api/library/{id}/ingest", libraryHandler.IngestDocument)
+
+		// Graph route
+		r.Get("/api/graph", graphHandler.GetGraph)
 
 		// Icon routes
 		r.Get("/api/icons", iconHandler.GetIcons)

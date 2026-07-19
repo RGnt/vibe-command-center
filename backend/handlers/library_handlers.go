@@ -3,6 +3,7 @@ package handlers
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,11 +11,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 	"todo-backend/middleware"
 	"todo-backend/models"
+	"todo-backend/repository"
 	"todo-backend/service"
 
 	"github.com/go-chi/chi/v5"
@@ -24,12 +27,14 @@ import (
 type LibraryHandler struct {
 	libraryService service.LibraryService
 	wikiService    service.WikiService
+	graphRepo      repository.GraphRepository
 }
 
-func NewLibraryHandler(libraryService service.LibraryService, wikiService service.WikiService) *LibraryHandler {
+func NewLibraryHandler(libraryService service.LibraryService, wikiService service.WikiService, graphRepo repository.GraphRepository) *LibraryHandler {
 	return &LibraryHandler{
 		libraryService: libraryService,
 		wikiService:    wikiService,
+		graphRepo:      graphRepo,
 	}
 }
 
@@ -210,6 +215,7 @@ func (h *LibraryHandler) IngestDocument(w http.ResponseWriter, r *http.Request) 
 
 	reqBody, _ := json.Marshal(map[string]string{
 		"filepath": agentFilepath,
+		"original_filename": doc.OriginalName,
 	})
 
 	agentHarnessURL := os.Getenv("AGENT_HARNESS_URL")
@@ -240,9 +246,9 @@ func (h *LibraryHandler) IngestDocument(w http.ResponseWriter, r *http.Request) 
 	}
 
 	scanner := bufio.NewScanner(resp.Body)
-	// docling returns very large lines for markdown output, increase buffer size
+	// docling returns very large lines for markdown output, especially with base64 images, increase buffer size
 	buf := make([]byte, 0, 64*1024)
-	scanner.Buffer(buf, 10*1024*1024) // up to 10MB line buffer
+	scanner.Buffer(buf, 100*1024*1024) // up to 100MB line buffer
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -254,7 +260,7 @@ func (h *LibraryHandler) IngestDocument(w http.ResponseWriter, r *http.Request) 
 			}
 
 			status, _ := event["status"].(string)
-			if status == "processing" {
+			if status == "processing" || status == "extracting_graph" {
 				fmt.Fprintf(w, "data: %s\n\n", data)
 				flusher.Flush()
 			} else if status == "error" {
@@ -263,6 +269,64 @@ func (h *LibraryHandler) IngestDocument(w http.ResponseWriter, r *http.Request) 
 				return
 			} else if status == "complete" {
 				markdown, _ := event["markdown"].(string)
+
+				// Find and extract Base64 embedded images
+				re := regexp.MustCompile(`!\[(.*?)\]\(data:image/([a-zA-Z]+);base64,([^)]+)\)`)
+				matches := re.FindAllStringSubmatch(markdown, -1)
+				
+				for _, match := range matches {
+					if len(match) == 4 {
+						fullMatch := match[0]
+						caption := match[1]
+						ext := match[2]
+						b64Data := match[3]
+
+						imgBytes, err := base64.StdEncoding.DecodeString(b64Data)
+						if err != nil {
+							continue
+						}
+
+						// Save it as a LibraryDocument
+						uploadDir := filepath.Join("storage", "library")
+						os.MkdirAll(uploadDir, os.ModePerm)
+						newFilename := uuid.New().String() + "." + ext
+						filePath := filepath.Join(uploadDir, newFilename)
+
+						dest, err := os.Create(filePath)
+						if err == nil {
+							dest.Write(imgBytes)
+							dest.Close()
+
+							docRecord := models.LibraryDocument{
+								UserID:       userID,
+								OriginalName: caption + "." + ext,
+								Filename:     newFilename,
+								Filepath:     filePath,
+								Size:         int64(len(imgBytes)),
+								MimeType:     "image/" + ext,
+							}
+
+							createdDoc, err := h.libraryService.CreateDocument(docRecord)
+							if err == nil {
+								// Replace the fullMatch with the new URL
+								newURL := fmt.Sprintf("![%s](/api/library/%d/download)", caption, createdDoc.ID)
+								markdown = strings.Replace(markdown, fullMatch, newURL, 1)
+							}
+						}
+					}
+				}
+
+				// Extract and save the graph if present
+				if graphData, ok := event["graph"]; ok {
+					graphBytes, _ := json.Marshal(graphData)
+					var graphPayload models.GraphPayload
+					if err := json.Unmarshal(graphBytes, &graphPayload); err == nil {
+						err := h.graphRepo.UpsertGraph(graphPayload)
+						if err != nil {
+							log.Println("Error upserting graph:", err)
+						}
+					}
+				}
 
 				// Create Wiki Page
 				baseName := strings.TrimSuffix(doc.OriginalName, filepath.Ext(doc.OriginalName))

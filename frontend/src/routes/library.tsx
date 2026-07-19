@@ -29,6 +29,7 @@ function LibraryView() {
   const [isDragging, setIsDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [ingestingId, setIngestingId] = useState<number | null>(null)
+  const [ingestionStatus, setIngestionStatus] = useState<string>('')
 
   const { data: documents, isLoading } = useQuery<LibraryDocument[]>({
     queryKey: ['library'],
@@ -91,7 +92,9 @@ function LibraryView() {
                 const event = JSON.parse(line.substring(6))
                 if (event.status === 'processing') {
                   // Connection is alive
-                  console.log('Ingestion processing...')
+                  setIngestionStatus('Parsing Document...')
+                } else if (event.status === 'extracting_graph') {
+                  setIngestionStatus('Extracting Knowledge Graph...')
                 } else if (event.status === 'complete') {
                   finalData = event.wiki
                 } else if (event.status === 'error') {
@@ -110,11 +113,13 @@ function LibraryView() {
     },
     onSuccess: (data) => {
       setIngestingId(null)
+      setIngestionStatus('')
       // Redirect to the newly created wiki page
       navigate({ to: `/wiki/${data.slug}` })
     },
     onError: (err: any) => {
       setIngestingId(null)
+      setIngestionStatus('')
       alert(`Failed to ingest document: ${err.message}`)
     }
   })
@@ -240,7 +245,10 @@ function LibraryView() {
                         title="Ingest to Global Wiki"
                       >
                         {ingestingId === doc.id ? (
-                          <Loader2 className="h-5 w-5 inline animate-spin" />
+                          <div className="flex items-center space-x-2">
+                            <Loader2 className="h-5 w-5 inline animate-spin" />
+                            <span className="text-xs">{ingestionStatus}</span>
+                          </div>
                         ) : (
                           <BookOpen className="h-5 w-5 inline" />
                         )}

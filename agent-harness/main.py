@@ -201,6 +201,39 @@ def health_check():
 
 class ConvertRequest(BaseModel):
     filepath: str
+    original_filename: str = ""
+
+def extract_knowledge_graph(markdown_text: str) -> dict:
+    import openai
+    client = openai.OpenAI(
+        base_url=LLM_BASE_URL,
+        api_key=LLM_API_KEY
+    )
+    
+    prompt = f"""
+    Extract a Knowledge Graph from the following text.
+    Return ONLY a valid JSON object matching this schema, nothing else:
+    {{
+      "nodes": [{{"id": "string", "label": "Person|Organization|Concept|Location|Event|Entity", "properties": {{"name": "string"}} }}],
+      "edges": [{{"source": "node_id", "target": "node_id", "label": "RELATED_TO|PART_OF|DEPENDS_ON|AFFECTS", "properties": {{"description": "string"}} }}]
+    }}
+    
+    Text:
+    {markdown_text[:12000]}
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model=LLM_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+            temperature=0.1
+        )
+        content = response.choices[0].message.content
+        return json.loads(content)
+    except Exception as e:
+        traceback.print_exc()
+        return {"nodes": [], "edges": []}
 
 @app.post("/api/v1/convert")
 async def convert_document(req: ConvertRequest):
@@ -221,11 +254,59 @@ async def convert_document(req: ConvertRequest):
         # Task is complete, yield the final result
         try:
             result = task.result()
-            if result.startswith("Error"):
-                yield f"data: {json.dumps({'status': 'error', 'detail': result})}\n\n"
+            if "error" in result:
+                yield f"data: {json.dumps({'status': 'error', 'detail': result['error']})}\n\n"
             else:
+                markdown = result["markdown"]
+                docling_doc = result["document"]
+                yield f"data: {json.dumps({'status': 'extracting_graph'})}\n\n"
+                
+                graph_task = loop.run_in_executor(None, extract_knowledge_graph, markdown)
+                
+                # Extract Structural Graph
+                import hashlib
+                from docling_core.transforms.chunker.hierarchical_chunker import HierarchicalChunker
+                
+                chunker = HierarchicalChunker()
+                chunks = list(chunker.chunk(docling_doc))
+                
+                doc_name = req.original_filename if req.original_filename else os.path.basename(req.filepath)
+                doc_id = hashlib.md5(doc_name.encode()).hexdigest()
+                structural_nodes = [{"id": doc_id, "label": "Document", "properties": {"name": doc_name}}]
+                structural_edges = []
+                
+                for c in chunks:
+                    chunk_id = hashlib.md5(c.text.encode()).hexdigest()
+                    structural_nodes.append({"id": chunk_id, "label": "Segment", "properties": {"text": c.text[:200]}})
+                    
+                    headings = c.meta.headings if hasattr(c.meta, 'headings') and c.meta.headings else []
+                    parent_id = doc_id
+                    
+                    if headings:
+                        chapter_name = headings[-1]
+                        chapter_id = hashlib.md5((doc_name + chapter_name).encode()).hexdigest()
+                        
+                        if not any(n["id"] == chapter_id for n in structural_nodes):
+                            structural_nodes.append({"id": chapter_id, "label": "Chapter", "properties": {"name": chapter_name}})
+                            structural_edges.append({"source": chapter_id, "target": doc_id, "label": "PART_OF"})
+                            
+                        parent_id = chapter_id
+                        
+                    structural_edges.append({"source": chunk_id, "target": parent_id, "label": "PART_OF"})
+
+                while not graph_task.done():
+                    yield f"data: {json.dumps({'status': 'extracting_graph'})}\n\n"
+                    try:
+                        await asyncio.wait_for(asyncio.shield(graph_task), timeout=5.0)
+                    except asyncio.TimeoutError:
+                        pass
+                        
+                graph_data = graph_task.result()
+                graph_data.setdefault("nodes", []).extend(structural_nodes)
+                graph_data.setdefault("edges", []).extend(structural_edges)
+                
                 # To avoid breaking the SSE format, escape newlines in JSON or rely on json.dumps doing it correctly
-                yield f"data: {json.dumps({'status': 'complete', 'markdown': result})}\n\n"
+                yield f"data: {json.dumps({'status': 'complete', 'markdown': markdown, 'graph': graph_data})}\n\n"
         except Exception as e:
             traceback.print_exc()
             yield f"data: {json.dumps({'status': 'error', 'detail': str(e)})}\n\n"

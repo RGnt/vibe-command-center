@@ -1,6 +1,6 @@
-﻿# Backend Specification
+# Backend Specification
 
-This document describes the complete architecture of the KanbanX Go backend, organized by layer. The backend follows a clean architecture with strict separation between HTTP handlers, business logic services, and data repositories.
+This document describes the complete architecture of the Vibe Command Center Go backend, organized by layer. The backend follows a clean architecture with strict separation between HTTP handlers, business logic services, and data repositories.
 
 ---
 

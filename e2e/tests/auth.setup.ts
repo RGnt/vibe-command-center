@@ -25,8 +25,8 @@ setup('authenticate', async ({ page }) => {
   // Submit
   await page.getByRole('button', { name: 'Sign Up' }).click();
 
-  // Wait until we are redirected or the main app appears (KanbanX header)
-  await expect(page.getByText('KanbanX')).toBeVisible({ timeout: 10000 });
+  // Wait until we are redirected or the main app appears (Vibe Command Center header)
+  await expect(page.getByText('Vibe Command Center')).toBeVisible({ timeout: 10000 });
 
   // Save the authenticated state
   await page.context().storageState({ path: authFile });

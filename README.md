@@ -1,6 +1,6 @@
-# KanbanX
+# Vibe Command Center
 
-KanbanX is a comprehensive project management and workflow organization tool designed to streamline your development and personal tasks. It features a modern, responsive UI built with React, a robust backend built with Go and PostgreSQL, and a powerful **AI Agent Harness** for intelligent document ingestion and task automation.
+Vibe Command Center is a comprehensive project management and workflow organization tool designed to streamline your development and personal tasks. It features a modern, responsive UI built with React, a robust backend built with Go and PostgreSQL, and a powerful **AI Agent Harness** for intelligent document ingestion and task automation.
 
 ## Features
 
@@ -54,7 +54,7 @@ Once the containers are running:
 
 ### Running the End-to-End Test Suite
 
-KanbanX includes a comprehensive End-to-End (E2E) testing suite built with Playwright. The E2E tests spin up an isolated test environment using `docker-compose.test.yml`.
+Vibe Command Center includes a comprehensive End-to-End (E2E) testing suite built with Playwright. The E2E tests spin up an isolated test environment using `docker-compose.test.yml`.
 
 1. Navigate to the `e2e` directory:
    ```bash
@@ -81,7 +81,7 @@ KanbanX includes a comprehensive End-to-End (E2E) testing suite built with Playw
 
 ## User Interface
 
-KanbanX utilizes a sleek "Glassmorphism" design with a dark mode color palette tailored for developers and power users. Micro-animations and responsive layouts ensure a smooth experience across different devices.
+Vibe Command Center utilizes a sleek "Glassmorphism" design with a dark mode color palette tailored for developers and power users. Micro-animations and responsive layouts ensure a smooth experience across different devices.
 
 ## API Documentation
 The application features a RESTful API. For detailed API endpoints and request/response schemas, refer to the documentation in the `/documentation` directory or browse the handler definitions in `/backend/handlers`.

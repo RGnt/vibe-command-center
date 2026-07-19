@@ -71,7 +71,7 @@ test.describe('Exhaustive E2E Test Suite', () => {
             await page.getByRole('button', { name: 'Sign Up' }).click();
 
             // 2. Login verification (should auto-login or land on dashboard)
-            await expect(page.getByText('KanbanX')).toBeVisible();
+            await expect(page.getByText('Vibe Command Center')).toBeVisible();
             await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
 
             // 3. Project Creation

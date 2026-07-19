@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('app loads and shows title', async ({ page }) => {
   await page.goto('/');
   // Check for the main header text instead of document title
-  await expect(page.getByText('KanbanX')).toBeVisible();
+  await expect(page.getByText('Vibe Command Center')).toBeVisible();
 });
 
 test('loads general project by default', async ({ page }) => {

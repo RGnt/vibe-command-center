@@ -1,6 +1,6 @@
 # Backend Services Specification
 
-The business logic of the KanbanX application is centralized in the `backend/service` package. These services sit between the HTTP handlers and the data repositories.
+The business logic of the Vibe Command Center application is centralized in the `backend/service` package. These services sit between the HTTP handlers and the data repositories.
 
 ## Core Services
 

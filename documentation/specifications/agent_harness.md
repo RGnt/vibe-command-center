@@ -1,6 +1,6 @@
 # Agent Harness Specification
 
-This document describes the architecture of the Agent Harness, a FastAPI Python service that executes autonomous AI agents against the KanbanX workspace.
+This document describes the architecture of the Agent Harness, a FastAPI Python service that executes autonomous AI agents against the Vibe Command Center workspace.
 
 ## Architecture Overview
 

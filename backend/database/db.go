@@ -37,6 +37,22 @@ func InitDB() {
 		log.Println("Note: Failed to create vector extension:", err)
 	}
 
+	// Initialize Apache AGE graph
+	_, err = DB.Exec(`LOAD 'age';`)
+	if err != nil {
+		log.Println("Note: Failed to load age extension:", err)
+	} else {
+		// Set search path so we don't have to fully qualify cypher calls
+		_, _ = DB.Exec(`SET search_path = ag_catalog, "$user", public;`)
+		
+		// Create the graph
+		// Apache AGE's create_graph throws an error if it already exists, so we just log it
+		_, err = DB.Exec(`SELECT create_graph('knowledge_graph');`)
+		if err != nil {
+			log.Println("Note: knowledge_graph might already exist or failed to create:", err)
+		}
+	}
+
 	// Create tables
 	createTables()
 }

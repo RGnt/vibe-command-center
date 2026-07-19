@@ -1,6 +1,6 @@
 # General Application Architecture
 
-KanbanX is structured as a modernized decoupled client-server architecture.
+Vibe Command Center is structured as a modernized decoupled client-server architecture.
 
 ## Overview
 
