@@ -12,6 +12,9 @@ test('loads general project by default', async ({ page }) => {
   // Verify Sidebar has "General Project"
   await expect(page.getByText('General Project').first()).toBeVisible();
 
+  // Navigate to project
+  await page.getByText('General Project').first().click();
+
   // Verify Kanban board headers (seeding creates "To Do")
   await expect(page.getByText('To Do', { exact: true })).toBeVisible();
 });

@@ -14,13 +14,19 @@ test.describe('Wiki Features', () => {
     await page.getByRole('button', { name: 'New Page' }).click();
     
     // Fill out the form
-    await page.locator('input').nth(0).fill('System Architecture');
-    await page.locator('input').nth(1).fill('Docs');
-    await page.locator('input').nth(2).fill('arch');
-    await page.locator('textarea').fill('# Architecture\nThis is a test.');
+    await page.getByPlaceholder('Page Title').fill('System Architecture');
+    await page.getByPlaceholder('Category (e.g. Engineering)').fill('Docs');
+    await page.getByPlaceholder('URL Slug (e.g. my-page)').fill('arch');
+    
+    // Type into Monaco editor
+    await page.locator('.monaco-editor').first().click();
+    // Select all text and delete it before typing
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Delete');
+    await page.keyboard.type('# Architecture\nThis is a test.');
     
     // Save
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('button', { name: 'Save Page' }).click();
 
     // Verify it was created
     await expect(page.getByText('System Architecture').first()).toBeVisible();

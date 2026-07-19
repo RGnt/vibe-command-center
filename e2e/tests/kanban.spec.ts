@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Kanban Features', () => {
   test('create a new task', async ({ page }) => {
     await page.goto('/');
+    await page.getByText('General Project').first().click();
     
     // Click the '+ Add Task' button (in the To Do column typically)
     await page.getByText('+ Add Task').first().click();

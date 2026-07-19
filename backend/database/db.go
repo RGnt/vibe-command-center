@@ -165,9 +165,24 @@ func createTables() {
 	if err != nil {
 		log.Fatal("Failed to create diagrams table:", err)
 	}
+
+	// Create library_documents table
+	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS library_documents (
+		id SERIAL PRIMARY KEY,
+		user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+		original_name TEXT NOT NULL,
+		filename TEXT NOT NULL,
+		filepath TEXT NOT NULL,
+		size BIGINT NOT NULL,
+		mime_type TEXT NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`)
+	if err != nil {
+		log.Fatal("Failed to create library_documents table:", err)
+	}
 	
 	// Ensure user_id column exists if tables were already there from previous version
-	tables := []string{"workflows", "projects", "todos", "wiki_pages", "icons", "diagrams"}
+	tables := []string{"workflows", "projects", "todos", "wiki_pages", "icons", "diagrams", "library_documents"}
 	for _, table := range tables {
 		_, _ = DB.Exec(`ALTER TABLE ` + table + ` ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE`)
 	}

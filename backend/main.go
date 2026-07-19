@@ -63,6 +63,10 @@ func main() {
 
 	uploadHandler := handlers.NewUploadHandler(iconService)
 
+	libraryRepo := repository.NewLibraryRepository(database.DB)
+	libraryService := service.NewLibraryService(libraryRepo)
+	libraryHandler := handlers.NewLibraryHandler(libraryService, wikiService)
+
 	r := chi.NewRouter()
 
 	// Middleware
@@ -81,6 +85,7 @@ func main() {
 	// Public routes
 	r.Post("/api/auth/register", authHandler.Register)
 	r.Post("/api/auth/login", authHandler.Login)
+	r.Post("/api/auth/logout", authHandler.Logout)
 
 	// Protected routes
 	r.Group(func(r chi.Router) {
@@ -118,6 +123,13 @@ func main() {
 
 		// Upload route
 		r.Post("/api/upload", uploadHandler.UploadFile)
+
+		// Library routes
+		r.Get("/api/library", libraryHandler.ListDocuments)
+		r.Post("/api/library/upload", libraryHandler.UploadDocument)
+		r.Get("/api/library/{id}/download", libraryHandler.DownloadDocument)
+		r.Delete("/api/library/{id}", libraryHandler.DeleteDocument)
+		r.Post("/api/library/{id}/ingest", libraryHandler.IngestDocument)
 
 		// Icon routes
 		r.Get("/api/icons", iconHandler.GetIcons)

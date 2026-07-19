@@ -104,6 +104,12 @@
       "stage": "Done"
     },
     {
+      "title": "Define BDD feature for mermaid_editors",
+      "content": "Write the Gherkin feature spec.",
+      "completed": false,
+      "stage": "To Do"
+    },
+    {
       "title": "Define BDD feature for projects",
       "content": "Write the Gherkin feature spec.",
       "completed": true,
@@ -206,6 +212,12 @@
       "title": "Feature: diagrams_icons",
       "slug": "feature-diagrams_icons",
       "content": "Feature: Diagrams and Icons\n  As an authenticated user\n  I want to create diagrams and upload custom icons\n  So that I can use them in my wikis and workflows\n\n  Background:\n    Given I am a registered and authenticated user\n\n  Scenario: Creating a mermaid diagram\n    When I send an authenticated request to create a new diagram with type \"graph TD\" and some mermaid code\n    Then the diagram should be saved to my account successfully\n    And I can reference it by ID in my wikis\n\n  Scenario: Editing a diagram\n    Given my account has a diagram with ID \"uuid\"\n    When I send an authenticated request to update the diagram code\n    Then the diagram should be updated\n    And any wiki referencing it will show the new diagram\n\n  Scenario: Prevent unauthorized access to diagrams\n    When I send an unauthenticated GET request to \"/api/diagrams\"\n    Then the response status code should be 401\n\n  Scenario: Uploading a custom icon\n    When I send an authenticated POST request with a file \"icon.png\" to \"/api/upload\"\n    Then the file should be saved in my account\n    And I should receive a URL to the uploaded file\n    And a new Icon record should be created in the database for me\n\n  Scenario: Deleting an icon\n    Given my account has an icon with ID \"uuid\"\n    When I send an authenticated request to delete the icon\n    Then the icon record should be removed\n    And it should no longer be available in the icon picker\n"
+    },
+    {
+      "category": "Specifications",
+      "title": "Feature: mermaid_editors",
+      "slug": "feature-mermaid_editors",
+      "content": "Feature: Mermaid Diagram Editors\n  As a user\n  I want to have specific drag-and-drop palettes and visual editors for each type of Mermaid diagram\n  So that I can visually create flowcharts, sequence diagrams, class diagrams, and state diagrams efficiently.\n\n  Scenario: Palette switches based on diagram type\n    Given I am on the Mermaid Editor page\n    When I select \"Top-Down Flowchart\"\n    Then the sidebar should display standard flowchart shapes (Rectangle, Circle, Cylinder)\n    When I select \"Sequence Diagram\"\n    Then the sidebar should display sequence-specific tools (Actor, Participant, Note)\n    When I select \"Class Diagram\"\n    Then the sidebar should display class-specific tools (Class, Interface, Relation)\n    When I select \"State Diagram\"\n    Then the sidebar should display state-specific tools (State, Transition, Choice)\n\n  Scenario: Visual parser correctly translates different diagram types\n    Given I have a canvas with Class nodes and Inheritance edges\n    When the diagram type is \"classDiagram\"\n    Then the generated Mermaid code should correctly format class definitions and \u003c|-- relationships\n    When the diagram type is \"stateDiagram-v2\"\n    Then the generated Mermaid code should correctly format state definitions and --\u003e relationships\n"
     },
     {
       "category": "Specifications",

@@ -4,15 +4,17 @@ KanbanX is structured as a modernized decoupled client-server architecture.
 
 ## Overview
 
-The application utilizes three main containers running in Docker:
+The application utilizes four main containers running in Docker:
 1. **Frontend**: An Nginx container serving a built Vite/React static application.
 2. **Backend**: A compiled Go HTTP server utilizing `go-chi` for routing.
 3. **Database**: A PostgreSQL database container enriched with `pgvector` and `AGE` graph extensions.
+4. **Agent Harness**: A FastAPI Python service providing an AI agent runtime via the `openai-agents` SDK, capable of editing workspace files directly.
 
 ## Communication Pattern
 The Client (React) issues RESTful HTTP calls. 
-To bypass CORS complexity and unify the service layer, Nginx on the Frontend container acts as a reverse proxy for the backend API.
-- Any request hitting `http://{frontend}/api/*` is seamlessly proxied to `http://backend:8080/*`.
+To bypass CORS complexity and unify the service layer, Nginx on the Frontend container acts as a reverse proxy for the backend API and the Agent Harness.
+- Any request hitting `http://{frontend}/api/v1/agents/*` is seamlessly proxied to `http://agent-harness:8000/api/v1/agents/*`.
+- Any other request hitting `http://{frontend}/api/*` is seamlessly proxied to `http://backend:8080/*`.
 
 ## Backend Architecture Pattern
 The Go backend strictly adheres to a three-tier layered architecture:

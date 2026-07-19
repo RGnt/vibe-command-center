@@ -13,7 +13,9 @@ export default defineConfig({
 
   use: {
     baseURL: 'http://127.0.0.1:8089',
-    trace: 'on-first-retry',
+    trace: 'on',
+    screenshot: 'only-on-failure',
+    permissions: ['clipboard-read', 'clipboard-write'],
   },
 
   projects: [
