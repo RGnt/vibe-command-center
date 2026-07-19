@@ -1,37 +1,46 @@
 Feature: Mermaid Diagram Editors
   As a user
-  I want to have a floating toolbar with a shape palette and a collapsible code editor for sequence diagrams
-  So that I can visually create sequence diagrams efficiently on a full-width canvas.
+  I want a split-pane diagram editor with code on the left and a live preview on the right
+  So that I can write Mermaid source and immediately see the rendered result.
 
-  Scenario: Shape palette displays sequence-specific tools
+  Scenario: Split-pane layout is visible
     Given I am on the Mermaid Editor page
-    When I click "Add Shape" on the floating toolbar
-    Then a modal should display sequence-specific tools (Actor, Participant, Note)
+    Then the code editor panel should be visible on the left side
+    And the live preview canvas should be visible on the right side
 
-  Scenario: Clicking a shape adds it to the canvas
+  Scenario: Applying code renders the diagram
     Given I am on the Mermaid Editor page
-    When I click "Add Shape" on the floating toolbar
-    And I select the "Actor" shape from the modal
-    Then a new "Actor" node should appear on the canvas
+    When I type valid Mermaid code in the editor
+    And I click "Apply Code"
+    Then the live preview should update to show the rendered diagram
 
-  Scenario: Collapsible code editor
+  Scenario: Zoom controls are available on the canvas
     Given I am on the Mermaid Editor page
-    When I click the "Toggle Code Editor" button on the left edge of the canvas
-    Then the code preview panel should expand
-    When I click the "Toggle Code Editor" button again
-    Then the code preview panel should collapse
+    Then a zoom-in button should be visible on the canvas
+    And a zoom-out button should be visible on the canvas
+    And a reset zoom button should be visible on the canvas
+
+  Scenario: Zooming in enlarges the diagram
+    Given I am on the Mermaid Editor page
+    When I click the zoom-in button multiple times
+    Then the diagram should appear larger on the canvas
+
+  Scenario: Resetting zoom returns to default scale
+    Given I am on the Mermaid Editor page
+    When I click the zoom-in button
+    And I click the reset zoom button
+    Then the diagram should return to its default scale
 
   Scenario: Dragging a connection between existing SVG nodes
     Given I am on the Mermaid Editor page
+    And a diagram with at least two actors is rendered
     When I click an existing actor node
     Then a connection handle box appears next to the actor
     When I drag from the connection handle to another existing actor node
     Then a new sequence diagram connection edge syntax is appended to the Mermaid code
 
-  Scenario: Dragging a connection to empty space creates a new actor
+  Scenario: Saving a diagram
     Given I am on the Mermaid Editor page
-    When I click an existing actor node
-    And I drag from the connection handle to an empty space on the canvas
-    Then a shape palette modal appears under my cursor
-    When I select the "Actor" shape from the palette
-    Then the new actor and connection syntax is appended to the Mermaid code
+    When I type a diagram name in the title input
+    And I click "Save"
+    Then the diagram should appear in the "Load Diagram" dropdown

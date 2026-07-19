@@ -5,7 +5,7 @@ const useMermaidStore = create((set, get) => ({
     diagramName: 'Untitled Diagram',
     diagramExplanation: '',
     diagramType: 'sequenceDiagram',
-    mermaidCode: 'sequenceDiagram\n',
+    mermaidCode: 'sequenceDiagram\n  actor Alice\n  actor Bob\n',
     selectedNodeId: null,
 
     setDiagramId: (id) => set({ diagramId: id }),
