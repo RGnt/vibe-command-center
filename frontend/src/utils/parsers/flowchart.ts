@@ -9,25 +9,16 @@ const shapeMap = {
     'circle': { left: '((', right: '))' },
 };
 
-export const exportToMermaid = (nodes, edges, diagramType = 'graph TD') => {
+export const exportToMermaid = (nodes, edges, diagramType) => {
     let code = `${diagramType}\n`;
 
-    // Only serialize nodes and edges for graph/flowchart types
-    if (!diagramType.startsWith('graph') && !diagramType.startsWith('flowchart')) {
-        return code;
-    }
-    
-    // Process nodes
     const nodeStrs = nodes.map(node => {
         const shape = node.data.shape || 'rectangle';
         const label = node.data.label || node.id;
         const delimiters = shapeMap[shape] || shapeMap['rectangle'];
-        
-        // If label is same as ID, we can just use ID in mermaid, but for clarity we write it out
         return `    ${node.id}${delimiters.left}${label}${delimiters.right}`;
     });
 
-    // Process edges
     const edgeStrs = edges.map(edge => {
         let linkStr = '-->';
         if (edge.label) {
@@ -49,7 +40,6 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
     dagreGraph.setGraph({ rankdir: direction, nodesep: 60, ranksep: 100 });
 
     nodes.forEach((node) => {
-        // Assume default node size
         dagreGraph.setNode(node.id, { width: 150, height: 50 });
     });
 
@@ -73,21 +63,16 @@ export const getLayoutedElements = (nodes, edges, direction = 'TB') => {
     return { nodes: layoutedNodes, edges };
 };
 
-export const importFromMermaid = (code) => {
+export const importFromMermaid = (code, diagramType) => {
     const nodes = [];
     const edges = [];
-    let diagramType = 'graph TD';
     let direction = 'TD';
 
-    const lines = code.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    
-    if (lines.length > 0) {
-        diagramType = lines[0];
-        if (diagramType.startsWith('graph ') || diagramType.startsWith('flowchart ')) {
-            direction = diagramType.split(' ')[1] || 'TD';
-        }
+    if (diagramType.startsWith('graph ') || diagramType.startsWith('flowchart ')) {
+        direction = diagramType.split(' ')[1] || 'TD';
     }
 
+    const lines = code.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     const nodeMap = new Map();
 
     const addNode = (id, label, shape = 'rectangle') => {
@@ -101,7 +86,6 @@ export const importFromMermaid = (code) => {
             nodeMap.set(id, newNode);
             nodes.push(newNode);
         } else if (label && nodeMap.get(id).data.label === id) {
-            // Update label and shape if previously only referenced by ID
             nodeMap.get(id).data.label = label;
             nodeMap.get(id).data.shape = shape;
         }
@@ -116,16 +100,13 @@ export const importFromMermaid = (code) => {
         if ((match = str.match(/^([a-zA-Z0-9_]+)\((.*?)\)$/))) return { id: match[1], label: match[2], shape: 'round' };
         if ((match = str.match(/^([a-zA-Z0-9_]+)\{(.*?)\}$/))) return { id: match[1], label: match[2], shape: 'rhombus' };
         
-        // Just an ID
         if (str.match(/^[a-zA-Z0-9_]+$/)) return { id: str, label: str, shape: 'rectangle' };
         return null;
     };
 
-    // Very basic regex to parse A-->B or A-->|label|B or Node definitions
     lines.forEach(line => {
-        if (line.startsWith('graph ')) return;
+        if (line.startsWith('graph ') || line.startsWith('flowchart ')) return;
 
-        // Check if edge
         const edgeMatch = line.match(/^(.*?)\s*-->(\|([^|]+)\|)?\s*(.*?)$/);
         if (edgeMatch) {
             const sourceStr = edgeMatch[1].trim();
@@ -148,7 +129,6 @@ export const importFromMermaid = (code) => {
                 });
             }
         } else {
-            // Check if node definition
             const nodeParsed = parseNodeSyntax(line);
             if (nodeParsed) {
                 addNode(nodeParsed.id, nodeParsed.label, nodeParsed.shape);

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Panel } from '@xyflow/react';
+import useMermaidStore from '../../store/mermaidStore';
 
 const EditorSidebar = () => {
+    const { diagramType } = useMermaidStore();
     const [icons, setIcons] = useState([]);
     const [expandedFolders, setExpandedFolders] = useState({});
 
@@ -82,58 +84,142 @@ const EditorSidebar = () => {
         setMoveDialog(null);
     };
 
+    const renderFlowchartPalette = () => (
+        <div className="flex flex-col gap-3">
+            <div 
+                className="border-2 border-primary bg-primary/10 text-primary p-3 rounded cursor-grab text-center font-medium"
+                onDragStart={(event) => onDragStart(event, 'mermaidNode', 'rectangle')}
+                draggable
+            >
+                Process (Rectangle)
+            </div>
+            <div 
+                className="border-2 border-primary bg-primary/10 text-primary p-3 rounded-full cursor-grab text-center font-medium"
+                onDragStart={(event) => onDragStart(event, 'mermaidNode', 'round')}
+                draggable
+            >
+                Round (Action)
+            </div>
+            <div 
+                className="border-2 border-primary bg-primary/10 text-primary p-3 cursor-grab text-center font-medium"
+                style={{ borderRadius: '50% 50% 50% 50% / 15% 15% 15% 15%' }}
+                onDragStart={(event) => onDragStart(event, 'mermaidNode', 'stadium')}
+                draggable
+            >
+                Stadium (Terminal)
+            </div>
+            <div 
+                className="border-2 border-primary bg-primary/10 text-primary p-3 cursor-grab text-center font-medium"
+                style={{ borderRadius: '15px' }}
+                onDragStart={(event) => onDragStart(event, 'mermaidNode', 'cylinder')}
+                draggable
+            >
+                Database (Cylinder)
+            </div>
+            <div 
+                className="border-2 border-primary bg-primary/10 text-primary p-3 rounded-full cursor-grab text-center font-medium aspect-square flex items-center justify-center w-24 self-center"
+                onDragStart={(event) => onDragStart(event, 'mermaidNode', 'circle')}
+                draggable
+            >
+                Circle
+            </div>
+            <div 
+                className="border-2 border-primary bg-primary/10 text-primary p-3 cursor-grab text-center font-medium transform -skew-x-12 w-[80%] self-center"
+                onDragStart={(event) => onDragStart(event, 'mermaidNode', 'rhombus')}
+                draggable
+            >
+                Decision (Rhombus)
+            </div>
+        </div>
+    );
+
+    const renderSequencePalette = () => (
+        <div className="flex flex-col gap-3">
+            <div 
+                className="border-2 border-green-500 bg-green-500/10 text-green-500 p-3 rounded cursor-grab text-center font-medium"
+                onDragStart={(event) => onDragStart(event, 'sequenceNode', 'actor')}
+                draggable
+            >
+                Actor
+            </div>
+            <div 
+                className="border-2 border-blue-500 bg-blue-500/10 text-blue-500 p-3 rounded cursor-grab text-center font-medium"
+                onDragStart={(event) => onDragStart(event, 'sequenceNode', 'participant')}
+                draggable
+            >
+                Participant
+            </div>
+            <div 
+                className="border-2 border-yellow-500 bg-yellow-500/10 text-yellow-500 p-3 rounded cursor-grab text-center font-medium"
+                onDragStart={(event) => onDragStart(event, 'sequenceNode', 'note')}
+                draggable
+            >
+                Note
+            </div>
+        </div>
+    );
+
+    const renderClassPalette = () => (
+        <div className="flex flex-col gap-3">
+            <div 
+                className="border-2 border-indigo-500 bg-indigo-500/10 text-indigo-500 p-3 rounded cursor-grab text-center font-medium"
+                onDragStart={(event) => onDragStart(event, 'classNode', 'class')}
+                draggable
+            >
+                Class
+            </div>
+            <div 
+                className="border-2 border-purple-500 bg-purple-500/10 text-purple-500 p-3 rounded cursor-grab text-center font-medium"
+                onDragStart={(event) => onDragStart(event, 'classNode', 'interface')}
+                draggable
+            >
+                Interface
+            </div>
+        </div>
+    );
+
+    const renderStatePalette = () => (
+        <div className="flex flex-col gap-3">
+            <div 
+                className="border-2 border-gray-500 bg-gray-500/10 text-gray-500 p-3 rounded-full cursor-grab text-center font-medium w-12 h-12 self-center bg-gray-800"
+                onDragStart={(event) => onDragStart(event, 'stateNode', 'initial')}
+                draggable
+            >
+                
+            </div>
+            <div 
+                className="border-2 border-red-500 bg-red-500/10 text-red-500 p-3 rounded cursor-grab text-center font-medium"
+                style={{ borderRadius: '20px' }}
+                onDragStart={(event) => onDragStart(event, 'stateNode', 'state')}
+                draggable
+            >
+                State
+            </div>
+            <div 
+                className="border-4 border-gray-500 bg-gray-500/10 text-gray-500 p-3 rounded-full cursor-grab text-center font-medium w-12 h-12 self-center bg-gray-800"
+                onDragStart={(event) => onDragStart(event, 'stateNode', 'final')}
+                draggable
+            >
+                
+            </div>
+        </div>
+    );
+
+    const renderDynamicPalette = () => {
+        if (diagramType.startsWith('graph') || diagramType.startsWith('flowchart')) return renderFlowchartPalette();
+        if (diagramType === 'sequenceDiagram') return renderSequencePalette();
+        if (diagramType === 'classDiagram') return renderClassPalette();
+        if (diagramType === 'stateDiagram-v2') return renderStatePalette();
+        return renderFlowchartPalette();
+    };
+
     return (
         <>
         <aside className="w-64 bg-bg-base border-r border-border p-4 flex flex-col gap-4 overflow-y-auto">
             <h2 className="text-text-base font-semibold text-lg">Palette</h2>
             <p className="text-text-muted text-sm mb-2">Drag shapes onto the canvas.</p>
             
-            <div className="flex flex-col gap-3">
-                <div 
-                    className="border-2 border-primary bg-primary/10 text-primary p-3 rounded cursor-grab text-center font-medium"
-                    onDragStart={(event) => onDragStart(event, 'mermaidNode', 'rectangle')}
-                    draggable
-                >
-                    Process (Rectangle)
-                </div>
-                <div 
-                    className="border-2 border-primary bg-primary/10 text-primary p-3 rounded-full cursor-grab text-center font-medium"
-                    onDragStart={(event) => onDragStart(event, 'mermaidNode', 'round')}
-                    draggable
-                >
-                    Round (Action)
-                </div>
-                <div 
-                    className="border-2 border-primary bg-primary/10 text-primary p-3 cursor-grab text-center font-medium"
-                    style={{ borderRadius: '50% 50% 50% 50% / 15% 15% 15% 15%' }}
-                    onDragStart={(event) => onDragStart(event, 'mermaidNode', 'stadium')}
-                    draggable
-                >
-                    Stadium (Terminal)
-                </div>
-                <div 
-                    className="border-2 border-primary bg-primary/10 text-primary p-3 cursor-grab text-center font-medium"
-                    style={{ borderRadius: '15px' }}
-                    onDragStart={(event) => onDragStart(event, 'mermaidNode', 'cylinder')}
-                    draggable
-                >
-                    Database (Cylinder)
-                </div>
-                <div 
-                    className="border-2 border-primary bg-primary/10 text-primary p-3 rounded-full cursor-grab text-center font-medium aspect-square flex items-center justify-center w-24 self-center"
-                    onDragStart={(event) => onDragStart(event, 'mermaidNode', 'circle')}
-                    draggable
-                >
-                    Circle
-                </div>
-                <div 
-                    className="border-2 border-primary bg-primary/10 text-primary p-3 cursor-grab text-center font-medium transform -skew-x-12 w-[80%] self-center"
-                    onDragStart={(event) => onDragStart(event, 'mermaidNode', 'rhombus')}
-                    draggable
-                >
-                    Decision (Rhombus)
-                </div>
-            </div>
+            {renderDynamicPalette()}
 
             <div className="mt-8">
                 <h3 className="text-text-base font-semibold text-md mb-2">Custom Icons</h3>

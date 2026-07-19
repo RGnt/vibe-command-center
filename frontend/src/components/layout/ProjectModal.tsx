@@ -76,7 +76,7 @@ const ProjectModal = ({ isOpen, onClose, onSave, workflows }) => {
                                 className="w-full p-3 rounded-lg bg-bg-base border border-border text-text-base focus:outline-none focus:ring-2 focus:ring-primary"
                             >
                                 <option value="">Select a workflow</option>
-                                {workflows.map(w => (
+                                {workflows?.map(w => (
                                     <option key={w.id} value={w.id}>{w.name}</option>
                                 ))}
                             </select>

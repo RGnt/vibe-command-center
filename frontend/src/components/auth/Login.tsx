@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Login() {
   const { login, register } = useAuth();
+  const queryClient = useQueryClient();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,6 +23,8 @@ export default function Login() {
 
       if (!result.success) {
         setError(result.error || 'Authentication failed');
+      } else {
+        queryClient.invalidateQueries();
       }
     } catch (err) {
       setError('Network error occurred');

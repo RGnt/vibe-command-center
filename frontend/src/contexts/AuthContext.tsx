@@ -1,21 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// Patch window.fetch globally to intercept and add the JWT token to all requests
+// Patch window.fetch globally to intercept 401s
 const originalFetch = window.fetch;
 window.fetch = async (url, options = {}) => {
-  const token = localStorage.getItem('token');
-  if (token && (url.startsWith('/api/') || url.startsWith('http'))) {
-    options.headers = {
-      ...options.headers,
-      'Authorization': `Bearer ${token}`
-    };
-  }
-  
   const response = await originalFetch(url, options);
   
   // If unauthorized and we're not hitting auth routes, log out automatically
-  if (response.status === 401 && !url.includes('/api/auth/')) {
-    localStorage.removeItem('token');
+  if (response.status === 401 && typeof url === 'string' && !url.includes('/api/auth/')) {
     window.dispatchEvent(new Event('auth:unauthorized'));
   }
   
@@ -31,19 +22,12 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchMe = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
     try {
       const res = await fetch('/api/auth/me');
       if (res.ok) {
         const data = await res.json();
         setUser(data);
       } else {
-        localStorage.removeItem('token');
         setUser(null);
       }
     } catch (e) {
@@ -73,7 +57,6 @@ export const AuthProvider = ({ children }) => {
     
     if (res.ok) {
       const data = await res.json();
-      localStorage.setItem('token', data.token);
       setUser(data.user);
       return { success: true };
     }
@@ -91,7 +74,6 @@ export const AuthProvider = ({ children }) => {
     
     if (res.ok) {
       const data = await res.json();
-      localStorage.setItem('token', data.token);
       setUser(data.user);
       return { success: true };
     }
@@ -100,8 +82,8 @@ export const AuthProvider = ({ children }) => {
     return { success: false, error: err };
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
+  const logout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
   };
 

@@ -19,6 +19,7 @@ services:
       - DATABASE_URL=postgres://todo_test_user:todo_test_password@db:5432/todo_test_db?sslmode=disable
     depends_on:
       - db
+    restart: on-failure
 
   backend-test:
     build:
@@ -39,3 +40,4 @@ services:
       - "8089:80"
     depends_on:
       - backend
+    restart: on-failure

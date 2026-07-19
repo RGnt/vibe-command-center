@@ -76,15 +76,32 @@ func (r *projectRepository) GetByIDAndUserID(id, userID int) (models.Project, er
 }
 
 func (r *projectRepository) Create(project models.Project) (models.Project, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return project, err
+	}
+	defer tx.Rollback()
+
 	var id int64
 	query := `INSERT INTO projects (user_id, name, description, workflow_id) VALUES ($1, $2, $3, $4) RETURNING id`
-	err := r.db.QueryRow(query, project.UserID, project.Name, project.Description, project.WorkflowID).Scan(&id)
+	err = tx.QueryRow(query, project.UserID, project.Name, project.Description, project.WorkflowID).Scan(&id)
 	if err != nil {
 		return project, err
 	}
 
 	project.ID = int(id)
 	project.CreatedAt = time.Now()
+
+	// Create a default wiki page for the new project
+	_, err = tx.Exec(`INSERT INTO wiki_pages (user_id, project_id, category, title, slug, content) VALUES ($1, $2, 'General', 'Index', 'index', '# Index\n\nWelcome to your new project wiki.')`, project.UserID, project.ID)
+	if err != nil {
+		return project, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return project, err
+	}
+
 	return project, nil
 }
 

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-import MarkdownRenderer from './MarkdownRenderer';
+import MarkdownRenderer from '../shared/MarkdownRenderer';
 
 const TaskModal = ({ isOpen, onClose, onSave, onAddSubtask, onToggleSubtask, onDeleteTodo, initialData, isEditMode, stageName }) => {
     const [title, setTitle] = useState('');
