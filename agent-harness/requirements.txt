@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+openai-agents[docker]==0.18.3
+httpx
+pydantic>=2.12.2
+python-dotenv
+docling
+graphifyy

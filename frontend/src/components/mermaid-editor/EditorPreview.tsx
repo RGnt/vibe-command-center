@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import useMermaidStore from '../../store/mermaidStore';
 import Editor from '@monaco-editor/react';
+import { setupMonaco } from '../../utils/monacoSetup';
 
 const EditorPanel = () => {
     const { mermaidCode, updateFromCode, diagramExplanation, setDiagramExplanation, diagramType, setDiagramType } = useMermaidStore();
@@ -52,10 +53,11 @@ const EditorPanel = () => {
                 <div className="flex-1 min-h-[200px] border border-border rounded-lg overflow-hidden">
                     <Editor
                         height="100%"
-                        defaultLanguage="markdown"
-                        theme="vs-dark"
+                        defaultLanguage="mermaid"
+                        theme="tokyo-night"
                         value={localCode}
                         onChange={(value) => setLocalCode(value || '')}
+                        beforeMount={setupMonaco}
                         options={{
                             minimap: { enabled: false },
                             scrollBeyondLastLine: false,

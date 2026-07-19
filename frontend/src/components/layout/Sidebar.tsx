@@ -68,6 +68,32 @@ const Sidebar = ({ onNewProject, onImportProject, onToggleTheme, isDark }) => {
                         </svg>
                         <span>Mermaid Editor</span>
                     </Link>
+                    <Link
+                        to="/agent"
+                        className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-3 transition-all duration-200 border-l-4 ${
+                            currentPath === '/agent'
+                                ? 'bg-accent/10 border-accent text-accent font-semibold shadow-inner' 
+                                : 'border-transparent text-text-base hover:bg-bg-hover hover:text-text-base'
+                        }`}
+                    >
+                        <svg className={`w-4 h-4 ${currentPath === '/agent' ? 'text-accent' : 'text-text-muted'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <span>Agent Harness</span>
+                    </Link>
+                    <Link
+                        to="/library"
+                        className={`w-full text-left px-3 py-2.5 rounded-lg flex items-center gap-3 transition-all duration-200 border-l-4 ${
+                            currentPath === '/library'
+                                ? 'bg-accent/10 border-accent text-accent font-semibold shadow-inner' 
+                                : 'border-transparent text-text-base hover:bg-bg-hover hover:text-text-base'
+                        }`}
+                    >
+                        <svg className={`w-4 h-4 ${currentPath === '/library' ? 'text-accent' : 'text-text-muted'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <span>Local Library</span>
+                    </Link>
                 </div>
 
                 <div>

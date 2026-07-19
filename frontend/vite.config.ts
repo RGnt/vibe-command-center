@@ -12,6 +12,7 @@ export default defineConfig({
   ],
   server: {
     proxy: {
+      '/api/v1/agents': 'http://localhost:8001',
       '/api': 'http://localhost:8080',
       '/uploads': 'http://localhost:8080',
     }

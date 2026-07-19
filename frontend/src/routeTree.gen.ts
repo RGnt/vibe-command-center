@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AgentRouteImport } from './routes/agent'
+import { Route as LibraryRouteImport } from './routes/library'
 import { Route as MermaidEditorRouteImport } from './routes/mermaid-editor'
 import { Route as WikiRouteImport } from './routes/wiki'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
@@ -18,6 +20,16 @@ import { Route as ProjectsProjectIdWikiRouteImport } from './routes/projects/$pr
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentRoute = AgentRouteImport.update({
+  id: '/agent',
+  path: '/agent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MermaidEditorRoute = MermaidEditorRouteImport.update({
@@ -43,6 +55,8 @@ const ProjectsProjectIdWikiRoute = ProjectsProjectIdWikiRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agent': typeof AgentRoute
+  '/library': typeof LibraryRoute
   '/mermaid-editor': typeof MermaidEditorRoute
   '/wiki': typeof WikiRoute
   '/projects/$projectId/wiki': typeof ProjectsProjectIdWikiRoute
@@ -50,6 +64,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agent': typeof AgentRoute
+  '/library': typeof LibraryRoute
   '/mermaid-editor': typeof MermaidEditorRoute
   '/wiki': typeof WikiRoute
   '/projects/$projectId/wiki': typeof ProjectsProjectIdWikiRoute
@@ -58,6 +74,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agent': typeof AgentRoute
+  '/library': typeof LibraryRoute
   '/mermaid-editor': typeof MermaidEditorRoute
   '/wiki': typeof WikiRoute
   '/projects/$projectId/wiki': typeof ProjectsProjectIdWikiRoute
@@ -67,6 +85,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/agent'
+    | '/library'
     | '/mermaid-editor'
     | '/wiki'
     | '/projects/$projectId/wiki'
@@ -74,6 +94,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/agent'
+    | '/library'
     | '/mermaid-editor'
     | '/wiki'
     | '/projects/$projectId/wiki'
@@ -81,6 +103,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/agent'
+    | '/library'
     | '/mermaid-editor'
     | '/wiki'
     | '/projects/$projectId/wiki'
@@ -89,6 +113,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgentRoute: typeof AgentRoute
+  LibraryRoute: typeof LibraryRoute
   MermaidEditorRoute: typeof MermaidEditorRoute
   WikiRoute: typeof WikiRoute
   ProjectsProjectIdWikiRoute: typeof ProjectsProjectIdWikiRoute
@@ -102,6 +128,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agent': {
+      id: '/agent'
+      path: '/agent'
+      fullPath: '/agent'
+      preLoaderRoute: typeof AgentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mermaid-editor': {
@@ -137,6 +177,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgentRoute: AgentRoute,
+  LibraryRoute: LibraryRoute,
   MermaidEditorRoute: MermaidEditorRoute,
   WikiRoute: WikiRoute,
   ProjectsProjectIdWikiRoute: ProjectsProjectIdWikiRoute,

@@ -1,5 +1,6 @@
 import React from 'react';
 import Editor from '@monaco-editor/react';
+import { setupMonaco } from '../../utils/monacoSetup';
 
 const WikiEditor = ({ 
     activePage, 
@@ -65,9 +66,10 @@ const WikiEditor = ({
                 <Editor
                     height="100%"
                     defaultLanguage="markdown"
-                    theme="vs-dark"
+                    theme="tokyo-night"
                     value={editContent}
                     onChange={(value) => setEditContent(value || '')}
+                    beforeMount={setupMonaco}
                     options={{
                         minimap: { enabled: false },
                         wordWrap: 'on',
