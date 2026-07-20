@@ -23,8 +23,6 @@ func SetupTestDB() {
 
 // ClearDB wipes all data from the database
 func ClearDB() {
-	database.Mutex.Lock()
-	defer database.Mutex.Unlock()
 	// TRUNCATE CASCADE will clear all tables dependent on users
 	_, err := database.DB.Exec(`TRUNCATE TABLE users RESTART IDENTITY CASCADE`)
 	if err != nil {

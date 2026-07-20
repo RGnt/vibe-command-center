@@ -3,8 +3,10 @@ package main
 import (
 	"log"
 	"net/http"
-
 	"os"
+	"strconv"
+	"strings"
+	"time"
 
 	"todo-backend/internal/database"
 	"todo-backend/internal/handlers"
@@ -25,13 +27,25 @@ func main() {
 	// Initialize dependencies
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		jwtSecret = "my_super_secret_key_change_me_in_prod" // Default for development
+		log.Fatal("JWT_SECRET environment variable is required and must not be empty")
 	}
 
 	userRepo := repository.NewPostgresUserRepository(database.DB)
-	authService := service.NewAuthService(userRepo, []byte(jwtSecret))
+	tokenBlocklist := repository.NewTokenBlocklistRepository(database.DB)
+	refreshRepo := repository.NewRefreshTokenRepository(database.DB)
+
+	bcryptCost := 12
+	if costStr := os.Getenv("BCRYPT_COST"); costStr != "" {
+		if c, err := strconv.Atoi(costStr); err == nil && c >= 10 && c <= 31 {
+			bcryptCost = c
+		} else {
+			log.Fatalf("Invalid BCRYPT_COST: %s", costStr)
+		}
+	}
+
+	authService := service.NewAuthService(userRepo, tokenBlocklist, refreshRepo, []byte(jwtSecret), bcryptCost)
 	authHandler := handlers.NewAuthHandler(authService)
-	authMiddleware := mymiddleware.NewAuthMiddlewareProvider([]byte(jwtSecret))
+	authMiddleware := mymiddleware.NewAuthMiddlewareProvider([]byte(jwtSecret), tokenBlocklist)
 
 	userSettingsRepo := repository.NewUserSettingsRepository(database.DB)
 	userService := service.NewUserService(userSettingsRepo)
@@ -77,18 +91,31 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// CORS middleware
+	// CORS middleware — configure allowed origins via CORS_ALLOWED_ORIGINS env var
+	// (comma-separated, e.g. "http://localhost:5173,https://yourdomain.com")
+	corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	allowedOrigins := []string{"http://localhost", "http://localhost:5173"} // safe dev defaults
+	if corsOrigins != "" {
+		allowedOrigins = strings.Split(corsOrigins, ",")
+	}
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		AllowCredentials: true,
 	}))
 
+	// Rate limiter for auth endpoints — 10 requests per minute per IP
+	authRateLimiter := mymiddleware.NewRateLimiter(10, time.Minute)
+
 	// Public routes
-	r.Post("/api/auth/register", authHandler.Register)
-	r.Post("/api/auth/login", authHandler.Login)
-	r.Post("/api/auth/logout", authHandler.Logout)
+	r.Group(func(r chi.Router) {
+		r.Use(authRateLimiter.Limit)
+		r.Post("/api/auth/register", authHandler.Register)
+		r.Post("/api/auth/login", authHandler.Login)
+		r.Post("/api/auth/logout", authHandler.Logout)
+		r.Post("/api/auth/refresh", authHandler.Refresh)
+	})
 
 	// Protected routes
 	r.Group(func(r chi.Router) {
@@ -158,5 +185,12 @@ func main() {
 	})
 
 	log.Println("Server starting on :8080...")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	srv := &http.Server{
+		Addr:         ":8080",
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 60 * time.Second, // longer to accommodate SSE streams
+		IdleTimeout:  120 * time.Second,
+	}
+	log.Fatal(srv.ListenAndServe())
 }

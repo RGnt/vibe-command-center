@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"todo-backend/internal/database"
 	"todo-backend/internal/middleware"
@@ -37,7 +38,11 @@ func (h *TodoHandler) GetTodos(w http.ResponseWriter, r *http.Request) {
 	projectIDStr := r.URL.Query().Get("project_id")
 	var pID *int
 	if projectIDStr != "" {
-		projectID, _ := strconv.Atoi(projectIDStr)
+		projectID, err := strconv.Atoi(projectIDStr)
+		if err != nil {
+			http.Error(w, "Invalid project_id parameter", http.StatusBadRequest)
+			return
+		}
 		pID = &projectID
 	}
 
@@ -94,6 +99,15 @@ func (h *TodoHandler) CreateTodo(w http.ResponseWriter, r *http.Request) {
 	var todo models.Todo
 	if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(todo.Title) == "" {
+		http.Error(w, "Todo title is required", http.StatusBadRequest)
+		return
+	}
+	if len(todo.Title) > 500 {
+		http.Error(w, "Todo title must not exceed 500 characters", http.StatusBadRequest)
 		return
 	}
 

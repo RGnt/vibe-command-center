@@ -123,16 +123,13 @@ func (r *todoRepository) Delete(id, userID int) error {
 	return err
 }
 
-// ToggleCompleted ...
+// ToggleCompleted atomically flips the completed state of a todo.
 func (r *todoRepository) ToggleCompleted(id, userID int) (bool, error) {
-	var currentCompleted bool
-	err := r.db.QueryRow("SELECT completed FROM todos WHERE id = $1 AND user_id = $2", id, userID).Scan(&currentCompleted)
-	if err != nil {
-		return false, err
-	}
-
-	newCompleted := !currentCompleted
-	_, err = r.db.Exec("UPDATE todos SET completed = $1 WHERE id = $2 AND user_id = $3", newCompleted, id, userID)
+	var newCompleted bool
+	err := r.db.QueryRow(
+		`UPDATE todos SET completed = NOT completed WHERE id = $1 AND user_id = $2 RETURNING completed`,
+		id, userID,
+	).Scan(&newCompleted)
 	return newCompleted, err
 }
 

@@ -34,7 +34,9 @@ func TestMain(m *testing.M) {
 	
 	// Setup dependencies for all tests here
 	userRepo := repository.NewPostgresUserRepository(database.DB)
-	authService := service.NewAuthService(userRepo, testutils.TestJWTSecret)
+	tokenBlocklist := repository.NewTokenBlocklistRepository(database.DB)
+	refreshRepo := repository.NewRefreshTokenRepository(database.DB)
+	authService := service.NewAuthService(userRepo, tokenBlocklist, refreshRepo, testutils.TestJWTSecret, 4) // cost 4 for fast tests
 	authHandler = NewAuthHandler(authService)
 
 	userSettingsRepo := repository.NewUserSettingsRepository(database.DB)
@@ -105,9 +107,6 @@ func TestRegister(t *testing.T) {
 	if resp["user"] == nil {
 		t.Errorf("Expected user object in response")
 	}
-	if resp["token"] == nil {
-		t.Errorf("Expected token in response")
-	}
 }
 
 // TestRegister_DuplicateEmail ...
@@ -133,8 +132,8 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 	rr2 := httptest.NewRecorder()
 	r.ServeHTTP(rr2, req2)
 
-	if rr2.Code != http.StatusConflict {
-		t.Errorf("Expected status code %d, got %d", http.StatusConflict, rr2.Code)
+	if rr2.Code != http.StatusAccepted {
+		t.Errorf("Expected status code %d, got %d", http.StatusAccepted, rr2.Code)
 	}
 }
 
@@ -167,8 +166,8 @@ func TestLogin(t *testing.T) {
 	var resp map[string]interface{}
 	_ = json.NewDecoder(rrLogin.Body).Decode(&resp)
 
-	if resp["token"] == nil {
-		t.Errorf("Expected token in login response")
+	if resp["user"] == nil {
+		t.Errorf("Expected user object in login response")
 	}
 }
 

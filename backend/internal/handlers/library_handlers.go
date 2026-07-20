@@ -163,7 +163,7 @@ func (h *LibraryHandler) DownloadDocument(w http.ResponseWriter, r *http.Request
 	_, _ = io.Copy(w, file)
 }
 
-// DeleteDocument ...
+// DeleteDocument deletes a library document and any extracted images derived from it.
 func (h *LibraryHandler) DeleteDocument(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -189,7 +189,9 @@ func (h *LibraryHandler) DeleteDocument(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Remove the primary file from disk
 	_ = os.Remove(doc.Filepath)
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -220,10 +222,14 @@ func (h *LibraryHandler) IngestDocument(w http.ResponseWriter, r *http.Request) 
 	
 	agentFilepath := "data/" + doc.Filepath // 'data/storage/library/filename.pdf'
 
-	reqBody, _ := json.Marshal(map[string]string{
-		"filepath": agentFilepath,
+	reqBody, err := json.Marshal(map[string]string{
+		"filepath":          agentFilepath,
 		"original_filename": doc.OriginalName,
 	})
+	if err != nil {
+		http.Error(w, "Failed to prepare request body", http.StatusInternalServerError)
+		return
+	}
 
 	agentHarnessURL := os.Getenv("AGENT_HARNESS_URL")
 	if agentHarnessURL == "" {

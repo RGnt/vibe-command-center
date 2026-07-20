@@ -30,6 +30,9 @@ services:
       dockerfile: Dockerfile
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER:-todo_user}:${POSTGRES_PASSWORD:-todo_password}@db:5432/${POSTGRES_DB:-todo_db}?sslmode=disable
+      - JWT_SECRET=${JWT_SECRET}
+      - BCRYPT_COST=${BCRYPT_COST:-12}
+      - IS_HTTPS=${IS_HTTPS:-false}
     volumes:
       - ./data/uploads:/app/uploads
       - ./data/storage:/app/storage

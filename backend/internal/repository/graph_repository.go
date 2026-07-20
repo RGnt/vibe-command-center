@@ -25,7 +25,9 @@ func NewGraphRepository(db *sql.DB) GraphRepository {
 	return &graphRepository{db: db}
 }
 
-// sanitizeLabel ensures the label only contains alphanumeric chars to prevent cypher injection
+// sanitizeLabel ensures the label only contains alphanumeric chars to prevent Cypher injection.
+// SECURITY: This function MUST be called before any label is interpolated into a Cypher query
+// via fmt.Sprintf. Never bypass this check or interpolate labels directly.
 func sanitizeLabel(label string) string {
 	re := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 	if !re.MatchString(label) {
@@ -55,7 +57,7 @@ func (r *graphRepository) UpsertGraph(payload models.GraphPayload) error {
 		if label == "" {
 			label = "Entity"
 		}
-		
+
 		// Ensure properties is not nil
 		if node.Properties == nil {
 			node.Properties = make(map[string]interface{})
@@ -77,10 +79,10 @@ func (r *graphRepository) UpsertGraph(payload models.GraphPayload) error {
 			$$, $1) as (v agtype);
 		`, label)
 
-		_, err = tx.Exec(query, string(paramsJSON))
-		if err != nil {
-			log.Printf("Failed to upsert node %s: %v", node.ID, err)
-			// Continue with other nodes instead of completely failing
+		if _, err = tx.Exec(query, string(paramsJSON)); err != nil {
+			log.Printf("Failed to upsert node %s: %v — rolling back", node.ID, err)
+			_ = tx.Rollback()
+			return fmt.Errorf("upsert node %s: %w", node.ID, err)
 		}
 	}
 
@@ -112,9 +114,10 @@ func (r *graphRepository) UpsertGraph(payload models.GraphPayload) error {
 			$$, $1) as (v agtype);
 		`, label)
 
-		_, err = tx.Exec(query, string(paramsJSON))
-		if err != nil {
-			log.Printf("Failed to upsert edge %s->%s: %v", edge.Source, edge.Target, err)
+		if _, err = tx.Exec(query, string(paramsJSON)); err != nil {
+			log.Printf("Failed to upsert edge %s->%s: %v — rolling back", edge.Source, edge.Target, err)
+			_ = tx.Rollback()
+			return fmt.Errorf("upsert edge %s->%s: %w", edge.Source, edge.Target, err)
 		}
 	}
 

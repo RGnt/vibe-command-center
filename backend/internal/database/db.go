@@ -4,16 +4,12 @@ import (
 	"database/sql"
 	"log"
 	"os"
-	"sync"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
 // DB is the global database connection
 var DB *sql.DB
-
-// Mutex is used to synchronize database access
-var Mutex sync.RWMutex
 
 // InitDB initializes the database connection and creates tables
 func InitDB() {
@@ -203,4 +199,26 @@ func createTables() {
 		_, _ = DB.Exec(`ALTER TABLE ` + table + ` ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE`)
 	}
 	_, _ = DB.Exec(`ALTER TABLE icons ADD COLUMN IF NOT EXISTS folder TEXT DEFAULT 'General'`)
+
+	// Revoked JWT tokens blocklist (AUTH-01)
+	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS revoked_tokens (
+		jti        TEXT PRIMARY KEY,
+		expires_at TIMESTAMP NOT NULL,
+		revoked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`)
+	if err != nil {
+		log.Fatal("Failed to create revoked_tokens table:", err)
+	}
+
+	// Refresh tokens (AUTH-09)
+	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS refresh_tokens (
+		id         SERIAL PRIMARY KEY,
+		user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		token_hash TEXT NOT NULL UNIQUE,
+		expires_at TIMESTAMP NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`)
+	if err != nil {
+		log.Fatal("Failed to create refresh_tokens table:", err)
+	}
 }

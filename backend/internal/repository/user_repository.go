@@ -44,7 +44,7 @@ func (r *postgresUserRepository) CreateUser(email, passwordHash string) (models.
 		VALUES ($1, $2) RETURNING id, email, created_at
 	`, email, passwordHash).Scan(&user.ID, &user.Email, &user.CreatedAt)
 	if err != nil {
-		return user, fmt.Errorf("email might already exist: %w", err)
+		return user, fmt.Errorf("%w: %w", ErrEmailExists, err)
 	}
 
 	// Create default user settings
