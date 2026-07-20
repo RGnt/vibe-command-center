@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN go build -o main .
+RUN go build -o main ./cmd/server
 
 # Stage 2: Run the binary
 FROM alpine:latest
