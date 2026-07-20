@@ -12,26 +12,31 @@ import (
 	"todo-backend/service"
 )
 
+// AuthInput ...
 type AuthInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
+// AuthResponse ...
 type AuthResponse struct {
 	Token string      `json:"token"`
 	User  models.User `json:"user"`
 }
 
+// AuthHandler ...
 type AuthHandler struct {
 	authService service.AuthService
 }
 
+// NewAuthHandler ...
 func NewAuthHandler(authService service.AuthService) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 	}
 }
 
+// Register ...
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var input AuthInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -62,9 +67,10 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, cookie)
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(AuthResponse{User: user})
+	_ = json.NewEncoder(w).Encode(AuthResponse{User: user})
 }
 
+// Login ...
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var input AuthInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -93,9 +99,10 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, cookie)
 
-	json.NewEncoder(w).Encode(AuthResponse{User: user})
+	_ = json.NewEncoder(w).Encode(AuthResponse{User: user})
 }
 
+// Logout ...
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	cookie := &http.Cookie{
 		Name:     "token",
@@ -110,6 +117,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// GetMe ...
 func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -123,5 +131,5 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(user)
+	_ = json.NewEncoder(w).Encode(user)
 }

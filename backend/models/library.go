@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// LibraryDocument ...
 type LibraryDocument struct {
 	ID           int       `json:"id"`
 	UserID       int       `json:"user_id"`

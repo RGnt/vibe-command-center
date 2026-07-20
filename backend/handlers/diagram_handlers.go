@@ -10,16 +10,19 @@ import (
 	"log"
 )
 
+// DiagramHandler ...
 type DiagramHandler struct {
 	diagramService service.DiagramService
 }
 
+// NewDiagramHandler ...
 func NewDiagramHandler(diagramService service.DiagramService) *DiagramHandler {
 	return &DiagramHandler{
 		diagramService: diagramService,
 	}
 }
 
+// GetDiagrams ...
 func (h *DiagramHandler) GetDiagrams(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -39,9 +42,10 @@ func (h *DiagramHandler) GetDiagrams(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(diagrams)
+	_ = json.NewEncoder(w).Encode(diagrams)
 }
 
+// GetDiagram ...
 func (h *DiagramHandler) GetDiagram(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -58,9 +62,10 @@ func (h *DiagramHandler) GetDiagram(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(d)
+	_ = json.NewEncoder(w).Encode(d)
 }
 
+// CreateDiagram ...
 func (h *DiagramHandler) CreateDiagram(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -82,9 +87,10 @@ func (h *DiagramHandler) CreateDiagram(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdDiagram)
+	_ = json.NewEncoder(w).Encode(createdDiagram)
 }
 
+// UpdateDiagram ...
 func (h *DiagramHandler) UpdateDiagram(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -106,9 +112,10 @@ func (h *DiagramHandler) UpdateDiagram(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updatedDiagram)
+	_ = json.NewEncoder(w).Encode(updatedDiagram)
 }
 
+// DeleteDiagram ...
 func (h *DiagramHandler) DeleteDiagram(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

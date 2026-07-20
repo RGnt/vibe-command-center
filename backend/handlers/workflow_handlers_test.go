@@ -24,6 +24,7 @@ func setupWorkflowRouter() *chi.Mux {
 	return r
 }
 
+// TestCreateWorkflow ...
 func TestCreateWorkflow(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
@@ -48,7 +49,7 @@ func TestCreateWorkflow(t *testing.T) {
 	}
 
 	var responseWorkflow models.Workflow
-	json.NewDecoder(rr.Body).Decode(&responseWorkflow)
+	_ = json.NewDecoder(rr.Body).Decode(&responseWorkflow)
 	if responseWorkflow.Name != "Test Workflow" {
 		t.Errorf("expected name to be 'Test Workflow', got %v", responseWorkflow.Name)
 	}
@@ -57,12 +58,13 @@ func TestCreateWorkflow(t *testing.T) {
 	}
 }
 
+// TestGetWorkflows ...
 func TestGetWorkflows(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupWorkflowRouter()
 
-	database.DB.Exec(`INSERT INTO workflows (user_id, name) VALUES (1, 'Test Workflow 1')`)
+	_, _ = database.DB.Exec(`INSERT INTO workflows (user_id, name) VALUES (1, 'Test Workflow 1')`)
 
 	req, _ := http.NewRequest("GET", "/api/workflows", nil)
 	rr := httptest.NewRecorder()
@@ -73,19 +75,20 @@ func TestGetWorkflows(t *testing.T) {
 	}
 
 	var workflows []models.Workflow
-	json.NewDecoder(rr.Body).Decode(&workflows)
+	_ = json.NewDecoder(rr.Body).Decode(&workflows)
 	if len(workflows) != 1 {
 		t.Errorf("expected 1 workflow, got %v", len(workflows))
 	}
 }
 
+// TestUpdateWorkflow ...
 func TestUpdateWorkflow(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupWorkflowRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO workflows (user_id, name) VALUES (1, 'Test Workflow 1') RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO workflows (user_id, name) VALUES (1, 'Test Workflow 1') RETURNING id`).Scan(&id)
 
 	workflow := models.Workflow{
 		Name: "Updated Workflow",
@@ -104,19 +107,20 @@ func TestUpdateWorkflow(t *testing.T) {
 	}
 
 	var responseWorkflow models.Workflow
-	json.NewDecoder(rr.Body).Decode(&responseWorkflow)
+	_ = json.NewDecoder(rr.Body).Decode(&responseWorkflow)
 	if responseWorkflow.Name != "Updated Workflow" {
 		t.Errorf("expected name to be 'Updated Workflow', got %v", responseWorkflow.Name)
 	}
 }
 
+// TestDeleteWorkflow ...
 func TestDeleteWorkflow(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupWorkflowRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO workflows (user_id, name) VALUES (1, 'Test Workflow 1') RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO workflows (user_id, name) VALUES (1, 'Test Workflow 1') RETURNING id`).Scan(&id)
 
 	req, _ := http.NewRequest("DELETE", "/api/workflows/"+strconv.Itoa(id), nil)
 	rr := httptest.NewRecorder()
@@ -127,7 +131,7 @@ func TestDeleteWorkflow(t *testing.T) {
 	}
 
 	var count int
-	database.DB.QueryRow("SELECT COUNT(*) FROM workflows WHERE id = $1", id).Scan(&count)
+	_ = database.DB.QueryRow("SELECT COUNT(*) FROM workflows WHERE id = $1", id).Scan(&count)
 	if count != 0 {
 		t.Errorf("expected 0 workflows, got %v", count)
 	}

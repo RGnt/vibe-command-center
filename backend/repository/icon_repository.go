@@ -5,6 +5,7 @@ import (
 	"todo-backend/models"
 )
 
+// IconRepository ...
 type IconRepository interface {
 	GetAllByUserID(userID int) ([]models.Icon, error)
 	GetByIDAndUserID(id string, userID int) (models.Icon, error)
@@ -17,16 +18,18 @@ type iconRepository struct {
 	db *sql.DB
 }
 
+// NewIconRepository ...
 func NewIconRepository(db *sql.DB) IconRepository {
 	return &iconRepository{db: db}
 }
 
+// GetAllByUserID ...
 func (r *iconRepository) GetAllByUserID(userID int) ([]models.Icon, error) {
 	rows, err := r.db.Query(`SELECT id, user_id, name, url, folder, created_at FROM icons WHERE user_id = $1 ORDER BY created_at DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var icons []models.Icon
 	for rows.Next() {
@@ -39,6 +42,7 @@ func (r *iconRepository) GetAllByUserID(userID int) ([]models.Icon, error) {
 	return icons, nil
 }
 
+// GetByIDAndUserID ...
 func (r *iconRepository) GetByIDAndUserID(id string, userID int) (models.Icon, error) {
 	var icon models.Icon
 	err := r.db.QueryRow(`SELECT id, user_id, name, url, folder, created_at FROM icons WHERE id = $1 AND user_id = $2`, id, userID).
@@ -46,6 +50,7 @@ func (r *iconRepository) GetByIDAndUserID(id string, userID int) (models.Icon, e
 	return icon, err
 }
 
+// Create ...
 func (r *iconRepository) Create(icon models.Icon) (models.Icon, error) {
 	err := r.db.QueryRow(
 		`INSERT INTO icons (user_id, name, url, folder) VALUES ($1, $2, $3, $4) RETURNING id, created_at`,
@@ -54,6 +59,7 @@ func (r *iconRepository) Create(icon models.Icon) (models.Icon, error) {
 	return icon, err
 }
 
+// Update ...
 func (r *iconRepository) Update(id string, icon models.Icon) (models.Icon, error) {
 	_, err := r.db.Exec(`UPDATE icons SET name = $1, folder = $2 WHERE id = $3 AND user_id = $4`, icon.Name, icon.Folder, id, icon.UserID)
 	if err != nil {
@@ -62,6 +68,7 @@ func (r *iconRepository) Update(id string, icon models.Icon) (models.Icon, error
 	return r.GetByIDAndUserID(id, icon.UserID)
 }
 
+// Delete ...
 func (r *iconRepository) Delete(id string, userID int) error {
 	_, err := r.db.Exec(`DELETE FROM icons WHERE id = $1 AND user_id = $2`, id, userID)
 	return err

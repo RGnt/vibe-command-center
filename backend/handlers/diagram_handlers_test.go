@@ -25,6 +25,7 @@ func setupDiagramRouter() *chi.Mux {
 	return r
 }
 
+// TestCreateDiagram ...
 func TestCreateDiagram(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
@@ -47,18 +48,19 @@ func TestCreateDiagram(t *testing.T) {
 	}
 
 	var responseDiagram models.Diagram
-	json.NewDecoder(rr.Body).Decode(&responseDiagram)
+	_ = json.NewDecoder(rr.Body).Decode(&responseDiagram)
 	if responseDiagram.Name != "Test Diagram" {
 		t.Errorf("expected name to be 'Test Diagram', got %v", responseDiagram.Name)
 	}
 }
 
+// TestGetDiagrams ...
 func TestGetDiagrams(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupDiagramRouter()
 
-	database.DB.Exec(`INSERT INTO diagrams (user_id, name, diagram_type, code) VALUES (1, 'Test Diagram', 'graph TD', 'A-->B')`)
+	_, _ = database.DB.Exec(`INSERT INTO diagrams (user_id, name, diagram_type, code) VALUES (1, 'Test Diagram', 'graph TD', 'A-->B')`)
 
 	req, _ := http.NewRequest("GET", "/api/diagrams", nil)
 	rr := httptest.NewRecorder()
@@ -69,19 +71,20 @@ func TestGetDiagrams(t *testing.T) {
 	}
 
 	var diagrams []models.Diagram
-	json.NewDecoder(rr.Body).Decode(&diagrams)
+	_ = json.NewDecoder(rr.Body).Decode(&diagrams)
 	if len(diagrams) != 1 {
 		t.Errorf("expected 1 diagram, got %v", len(diagrams))
 	}
 }
 
+// TestGetDiagram ...
 func TestGetDiagram(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupDiagramRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO diagrams (user_id, name, diagram_type, code) VALUES (1, 'Test Diagram', 'graph TD', 'A-->B') RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO diagrams (user_id, name, diagram_type, code) VALUES (1, 'Test Diagram', 'graph TD', 'A-->B') RETURNING id`).Scan(&id)
 
 	req, _ := http.NewRequest("GET", "/api/diagrams/"+strconv.Itoa(id), nil)
 	rr := httptest.NewRecorder()
@@ -92,19 +95,20 @@ func TestGetDiagram(t *testing.T) {
 	}
 
 	var d models.Diagram
-	json.NewDecoder(rr.Body).Decode(&d)
+	_ = json.NewDecoder(rr.Body).Decode(&d)
 	if d.Name != "Test Diagram" {
 		t.Errorf("expected name Test Diagram, got %v", d.Name)
 	}
 }
 
+// TestUpdateDiagram ...
 func TestUpdateDiagram(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupDiagramRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO diagrams (user_id, name, diagram_type, code) VALUES (1, 'Test Diagram', 'graph TD', 'A-->B') RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO diagrams (user_id, name, diagram_type, code) VALUES (1, 'Test Diagram', 'graph TD', 'A-->B') RETURNING id`).Scan(&id)
 
 	diagram := models.Diagram{
 		Name:        "Updated Diagram",
@@ -122,19 +126,20 @@ func TestUpdateDiagram(t *testing.T) {
 	}
 
 	var responseDiagram models.Diagram
-	json.NewDecoder(rr.Body).Decode(&responseDiagram)
+	_ = json.NewDecoder(rr.Body).Decode(&responseDiagram)
 	if responseDiagram.Name != "Updated Diagram" {
 		t.Errorf("expected name to be 'Updated Diagram', got %v", responseDiagram.Name)
 	}
 }
 
+// TestDeleteDiagram ...
 func TestDeleteDiagram(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupDiagramRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO diagrams (user_id, name, diagram_type, code) VALUES (1, 'Test Diagram', 'graph TD', 'A-->B') RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO diagrams (user_id, name, diagram_type, code) VALUES (1, 'Test Diagram', 'graph TD', 'A-->B') RETURNING id`).Scan(&id)
 
 	req, _ := http.NewRequest("DELETE", "/api/diagrams/"+strconv.Itoa(id), nil)
 	rr := httptest.NewRecorder()
@@ -145,7 +150,7 @@ func TestDeleteDiagram(t *testing.T) {
 	}
 
 	var count int
-	database.DB.QueryRow("SELECT COUNT(*) FROM diagrams WHERE id = $1", id).Scan(&count)
+	_ = database.DB.QueryRow("SELECT COUNT(*) FROM diagrams WHERE id = $1", id).Scan(&count)
 	if count != 0 {
 		t.Errorf("expected 0 diagrams, got %v", count)
 	}

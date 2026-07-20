@@ -23,12 +23,13 @@ func setupIconRouter() *chi.Mux {
 	return r
 }
 
+// TestGetIcons ...
 func TestGetIcons(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupIconRouter()
 
-	database.DB.Exec(`INSERT INTO icons (user_id, name, url, folder) VALUES (1, 'Test Icon', '/url', 'General')`)
+	_, _ = database.DB.Exec(`INSERT INTO icons (user_id, name, url, folder) VALUES (1, 'Test Icon', '/url', 'General')`)
 
 	req, _ := http.NewRequest("GET", "/api/icons", nil)
 	rr := httptest.NewRecorder()
@@ -39,19 +40,20 @@ func TestGetIcons(t *testing.T) {
 	}
 
 	var icons []models.Icon
-	json.NewDecoder(rr.Body).Decode(&icons)
+	_ = json.NewDecoder(rr.Body).Decode(&icons)
 	if len(icons) != 1 {
 		t.Errorf("expected 1 icon, got %v", len(icons))
 	}
 }
 
+// TestUpdateIcon ...
 func TestUpdateIcon(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupIconRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO icons (user_id, name, url, folder) VALUES (1, 'Test Icon', '/url', 'General') RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO icons (user_id, name, url, folder) VALUES (1, 'Test Icon', '/url', 'General') RETURNING id`).Scan(&id)
 
 	icon := models.Icon{
 		Name:   "Updated Icon",
@@ -68,7 +70,7 @@ func TestUpdateIcon(t *testing.T) {
 	}
 
 	var responseIcon models.Icon
-	json.NewDecoder(rr.Body).Decode(&responseIcon)
+	_ = json.NewDecoder(rr.Body).Decode(&responseIcon)
 	if responseIcon.Name != "Updated Icon" {
 		t.Errorf("expected name to be 'Updated Icon', got %v", responseIcon.Name)
 	}
@@ -77,13 +79,14 @@ func TestUpdateIcon(t *testing.T) {
 	}
 }
 
+// TestDeleteIcon ...
 func TestDeleteIcon(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupIconRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO icons (user_id, name, url, folder) VALUES (1, 'Test Icon', '/url', 'General') RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO icons (user_id, name, url, folder) VALUES (1, 'Test Icon', '/url', 'General') RETURNING id`).Scan(&id)
 
 	req, _ := http.NewRequest("DELETE", "/api/icons/"+strconv.Itoa(id), nil)
 	rr := httptest.NewRecorder()
@@ -94,7 +97,7 @@ func TestDeleteIcon(t *testing.T) {
 	}
 
 	var count int
-	database.DB.QueryRow("SELECT COUNT(*) FROM icons WHERE id = $1", id).Scan(&count)
+	_ = database.DB.QueryRow("SELECT COUNT(*) FROM icons WHERE id = $1", id).Scan(&count)
 	if count != 0 {
 		t.Errorf("expected 0 icons, got %v", count)
 	}

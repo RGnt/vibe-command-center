@@ -13,16 +13,19 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// WorkflowHandler ...
 type WorkflowHandler struct {
 	workflowService service.WorkflowService
 }
 
+// NewWorkflowHandler ...
 func NewWorkflowHandler(workflowService service.WorkflowService) *WorkflowHandler {
 	return &WorkflowHandler{
 		workflowService: workflowService,
 	}
 }
 
+// GetWorkflows ...
 func (h *WorkflowHandler) GetWorkflows(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -41,9 +44,10 @@ func (h *WorkflowHandler) GetWorkflows(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(workflows)
+	_ = json.NewEncoder(w).Encode(workflows)
 }
 
+// CreateWorkflow ...
 func (h *WorkflowHandler) CreateWorkflow(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -65,9 +69,10 @@ func (h *WorkflowHandler) CreateWorkflow(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdWorkflow)
+	_ = json.NewEncoder(w).Encode(createdWorkflow)
 }
 
+// UpdateWorkflow ...
 func (h *WorkflowHandler) UpdateWorkflow(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -98,9 +103,10 @@ func (h *WorkflowHandler) UpdateWorkflow(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updatedWorkflow)
+	_ = json.NewEncoder(w).Encode(updatedWorkflow)
 }
 
+// DeleteWorkflow ...
 func (h *WorkflowHandler) DeleteWorkflow(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

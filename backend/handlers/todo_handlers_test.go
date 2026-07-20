@@ -29,9 +29,10 @@ func setupTodoRouter() *chi.Mux {
 }
 
 func setupTestUser() {
-	database.DB.Exec("INSERT INTO users (id, email, password_hash) VALUES (1, 'test@example.com', 'hash') ON CONFLICT DO NOTHING")
+	_, _ = database.DB.Exec("INSERT INTO users (id, email, password_hash) VALUES (1, 'test@example.com', 'hash') ON CONFLICT DO NOTHING")
 }
 
+// TestCreateTodo ...
 func TestCreateTodo(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
@@ -54,7 +55,7 @@ func TestCreateTodo(t *testing.T) {
 	}
 
 	var responseTodo models.Todo
-	json.NewDecoder(rr.Body).Decode(&responseTodo)
+	_ = json.NewDecoder(rr.Body).Decode(&responseTodo)
 	if responseTodo.Title != "Test Todo" {
 		t.Errorf("expected title to be 'Test Todo', got %v", responseTodo.Title)
 	}
@@ -63,12 +64,13 @@ func TestCreateTodo(t *testing.T) {
 	}
 }
 
+// TestGetTodos ...
 func TestGetTodos(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupTodoRouter()
 
-	database.DB.Exec(`INSERT INTO todos (user_id, title, content, stage, completed) VALUES (1, 'Test Todo 1', 'Test Content', 'To Do', false)`)
+	_, _ = database.DB.Exec(`INSERT INTO todos (user_id, title, content, stage, completed) VALUES (1, 'Test Todo 1', 'Test Content', 'To Do', false)`)
 
 	req, _ := http.NewRequest("GET", "/api/todos", nil)
 	rr := httptest.NewRecorder()
@@ -79,12 +81,13 @@ func TestGetTodos(t *testing.T) {
 	}
 
 	var todos []models.Todo
-	json.NewDecoder(rr.Body).Decode(&todos)
+	_ = json.NewDecoder(rr.Body).Decode(&todos)
 	if len(todos) != 1 {
 		t.Errorf("expected 1 todo, got %v", len(todos))
 	}
 }
 
+// TestGetTodos_Unauthorized ...
 func TestGetTodos_Unauthorized(t *testing.T) {
 	// If AuthContext is not used, it should return 401
 	r := chi.NewRouter()
@@ -99,13 +102,14 @@ func TestGetTodos_Unauthorized(t *testing.T) {
 	}
 }
 
+// TestUpdateTodo ...
 func TestUpdateTodo(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupTodoRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO todos (user_id, title, stage, completed) VALUES (1, 'Test Todo 1', 'To Do', false) RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO todos (user_id, title, stage, completed) VALUES (1, 'Test Todo 1', 'To Do', false) RETURNING id`).Scan(&id)
 
 	todo := models.Todo{
 		Title: "Updated Todo",
@@ -122,19 +126,20 @@ func TestUpdateTodo(t *testing.T) {
 	}
 
 	var responseTodo models.Todo
-	json.NewDecoder(rr.Body).Decode(&responseTodo)
+	_ = json.NewDecoder(rr.Body).Decode(&responseTodo)
 	if responseTodo.Title != "Updated Todo" {
 		t.Errorf("expected title to be 'Updated Todo', got %v", responseTodo.Title)
 	}
 }
 
+// TestToggleTodo ...
 func TestToggleTodo(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupTodoRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO todos (user_id, title, stage, completed) VALUES (1, 'Test Todo 1', 'To Do', false) RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO todos (user_id, title, stage, completed) VALUES (1, 'Test Todo 1', 'To Do', false) RETURNING id`).Scan(&id)
 
 	req, _ := http.NewRequest("PATCH", "/api/todos/"+strconv.Itoa(id)+"/toggle", nil)
 	rr := httptest.NewRecorder()
@@ -145,19 +150,20 @@ func TestToggleTodo(t *testing.T) {
 	}
 
 	var responseTodo models.Todo
-	json.NewDecoder(rr.Body).Decode(&responseTodo)
+	_ = json.NewDecoder(rr.Body).Decode(&responseTodo)
 	if responseTodo.Completed != true {
 		t.Errorf("expected completed to be true, got %v", responseTodo.Completed)
 	}
 }
 
+// TestDeleteTodo ...
 func TestDeleteTodo(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupTodoRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO todos (user_id, title, stage, completed) VALUES (1, 'Test Todo 1', 'To Do', false) RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO todos (user_id, title, stage, completed) VALUES (1, 'Test Todo 1', 'To Do', false) RETURNING id`).Scan(&id)
 
 	req, _ := http.NewRequest("DELETE", "/api/todos/"+strconv.Itoa(id), nil)
 	rr := httptest.NewRecorder()
@@ -168,19 +174,20 @@ func TestDeleteTodo(t *testing.T) {
 	}
 
 	var count int
-	database.DB.QueryRow("SELECT COUNT(*) FROM todos WHERE id = $1", id).Scan(&count)
+	_ = database.DB.QueryRow("SELECT COUNT(*) FROM todos WHERE id = $1", id).Scan(&count)
 	if count != 0 {
 		t.Errorf("expected 0 todos, got %v", count)
 	}
 }
 
+// TestCreateSubtask ...
 func TestCreateSubtask(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupTodoRouter()
 
 	var parentID int
-	database.DB.QueryRow(`INSERT INTO todos (user_id, title, stage, completed) VALUES (1, 'Parent', 'To Do', false) RETURNING id`).Scan(&parentID)
+	_ = database.DB.QueryRow(`INSERT INTO todos (user_id, title, stage, completed) VALUES (1, 'Parent', 'To Do', false) RETURNING id`).Scan(&parentID)
 
 	todo := models.Todo{
 		Title: "Subtask",
@@ -198,7 +205,7 @@ func TestCreateSubtask(t *testing.T) {
 	}
 
 	var responseTodo models.Todo
-	json.NewDecoder(rr.Body).Decode(&responseTodo)
+	_ = json.NewDecoder(rr.Body).Decode(&responseTodo)
 	if *responseTodo.ParentID != parentID {
 		t.Errorf("expected parent ID to be %v, got %v", parentID, responseTodo.ParentID)
 	}

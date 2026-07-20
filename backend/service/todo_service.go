@@ -6,6 +6,7 @@ import (
 	"todo-backend/repository"
 )
 
+// TodoService ...
 type TodoService interface {
 	GetTodos(userID int, projectID *int) ([]models.Todo, error)
 	GetTodo(id, userID int) (models.Todo, error)
@@ -21,12 +22,14 @@ type todoService struct {
 	todoRepo repository.TodoRepository
 }
 
+// NewTodoService ...
 func NewTodoService(todoRepo repository.TodoRepository) TodoService {
 	return &todoService{
 		todoRepo: todoRepo,
 	}
 }
 
+// GetTodos ...
 func (s *todoService) GetTodos(userID int, projectID *int) ([]models.Todo, error) {
 	todos, err := s.todoRepo.GetAllTopLevel(userID, projectID)
 	if err != nil {
@@ -43,6 +46,7 @@ func (s *todoService) GetTodos(userID int, projectID *int) ([]models.Todo, error
 	return todos, nil
 }
 
+// GetTodo ...
 func (s *todoService) GetTodo(id, userID int) (models.Todo, error) {
 	todo, err := s.todoRepo.GetByIDAndUserID(id, userID)
 	if err != nil {
@@ -57,11 +61,13 @@ func (s *todoService) GetTodo(id, userID int) (models.Todo, error) {
 	return todo, nil
 }
 
+// CreateTodo ...
 func (s *todoService) CreateTodo(userID int, todo models.Todo) (models.Todo, error) {
 	todo.UserID = userID
 	return s.todoRepo.Create(todo)
 }
 
+// CreateSubtask ...
 func (s *todoService) CreateSubtask(userID, parentID int, subtask models.Todo) (models.Todo, error) {
 	exists, parentProjectID, err := s.todoRepo.CheckExistsAndProjectID(parentID, userID)
 	if err != nil || !exists {
@@ -78,6 +84,7 @@ func (s *todoService) CreateSubtask(userID, parentID int, subtask models.Todo) (
 	return s.todoRepo.CreateSubtask(subtask)
 }
 
+// UpdateTodo ...
 func (s *todoService) UpdateTodo(id, userID int, todo models.Todo) (models.Todo, error) {
 	todo.ID = id
 	todo.UserID = userID
@@ -88,10 +95,12 @@ func (s *todoService) UpdateTodo(id, userID int, todo models.Todo) (models.Todo,
 	return s.todoRepo.GetByIDAndUserID(id, userID)
 }
 
+// DeleteTodo ...
 func (s *todoService) DeleteTodo(id, userID int) error {
 	return s.todoRepo.Delete(id, userID)
 }
 
+// ToggleTodo ...
 func (s *todoService) ToggleTodo(id, userID int) (models.Todo, error) {
 	_, err := s.todoRepo.ToggleCompleted(id, userID)
 	if err != nil {
@@ -100,6 +109,7 @@ func (s *todoService) ToggleTodo(id, userID int) (models.Todo, error) {
 	return s.todoRepo.GetByIDAndUserID(id, userID)
 }
 
+// GetTodosByStage ...
 func (s *todoService) GetTodosByStage(userID int, stages []string) ([]map[string]interface{}, error) {
 	stageMap := make(map[string][]models.Todo)
 	for _, stage := range stages {

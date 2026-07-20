@@ -7,6 +7,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// Claims ...
 type Claims struct {
 	UserID int `json:"user_id"`
 	jwt.RegisteredClaims
@@ -15,6 +16,7 @@ type Claims struct {
 // UserContextKey is the key for the user id in the request context
 type UserContextKey string
 
+// UserIDKey ...
 const UserIDKey UserContextKey = "user_id"
 
 // AuthMiddlewareProvider holds dependencies for the auth middleware
@@ -22,6 +24,7 @@ type AuthMiddlewareProvider struct {
 	jwtKey []byte
 }
 
+// NewAuthMiddlewareProvider ...
 func NewAuthMiddlewareProvider(jwtKey []byte) *AuthMiddlewareProvider {
 	return &AuthMiddlewareProvider{jwtKey: jwtKey}
 }

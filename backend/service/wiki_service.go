@@ -7,6 +7,7 @@ import (
 	"todo-backend/repository"
 )
 
+// WikiService ...
 type WikiService interface {
 	GetWikis(userID int) ([]models.WikiPage, error)
 	GetWiki(slug string, userID int) (models.WikiPage, error)
@@ -19,16 +20,19 @@ type wikiService struct {
 	wikiRepo repository.WikiRepository
 }
 
+// NewWikiService ...
 func NewWikiService(wikiRepo repository.WikiRepository) WikiService {
 	return &wikiService{
 		wikiRepo: wikiRepo,
 	}
 }
 
+// GetWikis ...
 func (s *wikiService) GetWikis(userID int) ([]models.WikiPage, error) {
 	return s.wikiRepo.GetAllByUserID(userID)
 }
 
+// GetWiki ...
 func (s *wikiService) GetWiki(slug string, userID int) (models.WikiPage, error) {
 	return s.wikiRepo.GetBySlugAndUserID(slug, userID)
 }
@@ -41,6 +45,7 @@ func generateSlug(title string) string {
 	return slug
 }
 
+// CreateWiki ...
 func (s *wikiService) CreateWiki(userID int, wiki models.WikiPage) (models.WikiPage, error) {
 	wiki.UserID = userID
 	
@@ -51,6 +56,7 @@ func (s *wikiService) CreateWiki(userID int, wiki models.WikiPage) (models.WikiP
 	return s.wikiRepo.Create(wiki)
 }
 
+// UpdateWiki ...
 func (s *wikiService) UpdateWiki(id, userID int, wiki models.WikiPage) (models.WikiPage, error) {
 	wiki.UserID = userID
 	if wiki.Slug == "" {
@@ -59,6 +65,7 @@ func (s *wikiService) UpdateWiki(id, userID int, wiki models.WikiPage) (models.W
 	return s.wikiRepo.Update(id, wiki)
 }
 
+// DeleteWiki ...
 func (s *wikiService) DeleteWiki(id, userID int) error {
 	return s.wikiRepo.Delete(id, userID)
 }

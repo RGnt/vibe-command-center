@@ -10,6 +10,7 @@ import (
 	"todo-backend/models"
 )
 
+// GraphRepository ...
 type GraphRepository interface {
 	UpsertGraph(payload models.GraphPayload) error
 	GetGraph() (models.GraphPayload, error)
@@ -19,6 +20,7 @@ type graphRepository struct {
 	db *sql.DB
 }
 
+// NewGraphRepository ...
 func NewGraphRepository(db *sql.DB) GraphRepository {
 	return &graphRepository{db: db}
 }
@@ -32,6 +34,7 @@ func sanitizeLabel(label string) string {
 	return label
 }
 
+// UpsertGraph ...
 func (r *graphRepository) UpsertGraph(payload models.GraphPayload) error {
 	// Execute in a transaction
 	tx, err := r.db.Begin()
@@ -42,7 +45,7 @@ func (r *graphRepository) UpsertGraph(payload models.GraphPayload) error {
 	// Make sure search path is set for this tx
 	_, err = tx.Exec(`SET search_path = ag_catalog, "$user", public;`)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 
@@ -118,6 +121,7 @@ func (r *graphRepository) UpsertGraph(payload models.GraphPayload) error {
 	return tx.Commit()
 }
 
+// GetGraph ...
 func (r *graphRepository) GetGraph() (models.GraphPayload, error) {
 	var payload models.GraphPayload
 	payload.Nodes = make([]models.GraphNode, 0)
@@ -141,7 +145,7 @@ func (r *graphRepository) GetGraph() (models.GraphPayload, error) {
 	if err != nil {
 		return payload, fmt.Errorf("failed to query nodes: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	for rows.Next() {
 		var idAg, labelAg, propsAg string
@@ -152,11 +156,11 @@ func (r *graphRepository) GetGraph() (models.GraphPayload, error) {
 
 		// agtype strings are wrapped in double quotes (e.g. '"Person"'). We must unmarshal them.
 		var idStr, labelStr string
-		json.Unmarshal([]byte(idAg), &idStr)
-		json.Unmarshal([]byte(labelAg), &labelStr)
+		_ = json.Unmarshal([]byte(idAg), &idStr)
+		_ = json.Unmarshal([]byte(labelAg), &labelStr)
 
 		var props map[string]interface{}
-		json.Unmarshal([]byte(propsAg), &props)
+		_ = json.Unmarshal([]byte(propsAg), &props)
 
 		if idStr == "" {
 			continue // skip nodes without our custom ID
@@ -180,7 +184,7 @@ func (r *graphRepository) GetGraph() (models.GraphPayload, error) {
 	if err != nil {
 		return payload, fmt.Errorf("failed to query edges: %w", err)
 	}
-	defer edgeRows.Close()
+	defer func() { _ = edgeRows.Close() }()
 
 	for edgeRows.Next() {
 		var srcAg, tgtAg, labelAg, propsAg string
@@ -190,12 +194,12 @@ func (r *graphRepository) GetGraph() (models.GraphPayload, error) {
 		}
 
 		var srcStr, tgtStr, labelStr string
-		json.Unmarshal([]byte(srcAg), &srcStr)
-		json.Unmarshal([]byte(tgtAg), &tgtStr)
-		json.Unmarshal([]byte(labelAg), &labelStr)
+		_ = json.Unmarshal([]byte(srcAg), &srcStr)
+		_ = json.Unmarshal([]byte(tgtAg), &tgtStr)
+		_ = json.Unmarshal([]byte(labelAg), &labelStr)
 
 		var props map[string]interface{}
-		json.Unmarshal([]byte(propsAg), &props)
+		_ = json.Unmarshal([]byte(propsAg), &props)
 
 		if srcStr == "" || tgtStr == "" {
 			continue

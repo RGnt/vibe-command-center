@@ -6,12 +6,13 @@ import (
 	"todo-backend/models"
 )
 
+// GetAllByProjectID ...
 func (r *wikiRepository) GetAllByProjectID(userID int, projectID int) ([]models.WikiPage, error) {
 	rows, err := r.db.Query(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE user_id = $1 AND project_id = $2 ORDER BY category, title`, userID, projectID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var wikis []models.WikiPage
 	for rows.Next() {

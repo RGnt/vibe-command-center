@@ -28,6 +28,7 @@ var (
 	uploadHandler   *UploadHandler
 )
 
+// TestMain ...
 func TestMain(m *testing.M) {
 	testutils.SetupTestDB()
 	
@@ -78,6 +79,7 @@ func setupAuthRouter() *chi.Mux {
 	return r
 }
 
+// TestRegister ...
 func TestRegister(t *testing.T) {
 	testutils.ClearDB()
 	r := setupAuthRouter()
@@ -98,7 +100,7 @@ func TestRegister(t *testing.T) {
 	}
 
 	var resp map[string]interface{}
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	if resp["user"] == nil {
 		t.Errorf("Expected user object in response")
@@ -108,6 +110,7 @@ func TestRegister(t *testing.T) {
 	}
 }
 
+// TestRegister_DuplicateEmail ...
 func TestRegister_DuplicateEmail(t *testing.T) {
 	testutils.ClearDB()
 	r := setupAuthRouter()
@@ -135,6 +138,7 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 	}
 }
 
+// TestLogin ...
 func TestLogin(t *testing.T) {
 	testutils.ClearDB()
 	r := setupAuthRouter()
@@ -161,13 +165,14 @@ func TestLogin(t *testing.T) {
 	}
 
 	var resp map[string]interface{}
-	json.NewDecoder(rrLogin.Body).Decode(&resp)
+	_ = json.NewDecoder(rrLogin.Body).Decode(&resp)
 
 	if resp["token"] == nil {
 		t.Errorf("Expected token in login response")
 	}
 }
 
+// TestLogin_WrongPassword ...
 func TestLogin_WrongPassword(t *testing.T) {
 	testutils.ClearDB()
 	r := setupAuthRouter()
@@ -198,6 +203,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 	}
 }
 
+// TestGetMe ...
 func TestGetMe(t *testing.T) {
 	testutils.ClearDB()
 
@@ -206,7 +212,7 @@ func TestGetMe(t *testing.T) {
 	r.Get("/api/auth/me", testutils.AuthContext(1, authHandler.GetMe))
 
 	// Need a user in DB with ID 1
-	database.DB.Exec("INSERT INTO users (id, email, password_hash) VALUES (1, 'me@example.com', 'hash')")
+	_, _ = database.DB.Exec("INSERT INTO users (id, email, password_hash) VALUES (1, 'me@example.com', 'hash')")
 
 	req, _ := http.NewRequest("GET", "/api/auth/me", nil)
 	rr := httptest.NewRecorder()
@@ -217,7 +223,7 @@ func TestGetMe(t *testing.T) {
 	}
 
 	var resp map[string]interface{}
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	if resp["email"] != "me@example.com" {
 		t.Errorf("Expected email me@example.com, got %v", resp["email"])

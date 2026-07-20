@@ -13,16 +13,19 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// WikiHandler ...
 type WikiHandler struct {
 	wikiService service.WikiService
 }
 
+// NewWikiHandler ...
 func NewWikiHandler(wikiService service.WikiService) *WikiHandler {
 	return &WikiHandler{
 		wikiService: wikiService,
 	}
 }
 
+// GetWikis ...
 func (h *WikiHandler) GetWikis(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -41,9 +44,10 @@ func (h *WikiHandler) GetWikis(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(wikis)
+	_ = json.NewEncoder(w).Encode(wikis)
 }
 
+// GetWiki ...
 func (h *WikiHandler) GetWiki(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -64,9 +68,10 @@ func (h *WikiHandler) GetWiki(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(wiki)
+	_ = json.NewEncoder(w).Encode(wiki)
 }
 
+// CreateWiki ...
 func (h *WikiHandler) CreateWiki(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -88,9 +93,10 @@ func (h *WikiHandler) CreateWiki(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdWiki)
+	_ = json.NewEncoder(w).Encode(createdWiki)
 }
 
+// UpdateWiki ...
 func (h *WikiHandler) UpdateWiki(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -117,9 +123,10 @@ func (h *WikiHandler) UpdateWiki(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updatedWiki)
+	_ = json.NewEncoder(w).Encode(updatedWiki)
 }
 
+// DeleteWiki ...
 func (h *WikiHandler) DeleteWiki(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

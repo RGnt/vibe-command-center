@@ -15,10 +15,12 @@ import (
 	"github.com/google/uuid"
 )
 
+// UploadHandler ...
 type UploadHandler struct {
 	iconService service.IconService
 }
 
+// NewUploadHandler ...
 func NewUploadHandler(iconService service.IconService) *UploadHandler {
 	return &UploadHandler{
 		iconService: iconService,
@@ -34,14 +36,14 @@ func (h *UploadHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 10 MB limit
-	r.ParseMultipartForm(10 << 20)
+	_ = r.ParseMultipartForm(10 << 20)
 
 	file, handler, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, "Failed to retrieve file", http.StatusBadRequest)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	// Validate extension
 	ext := strings.ToLower(filepath.Ext(handler.Filename))
@@ -66,7 +68,7 @@ func (h *UploadHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to save file", http.StatusInternalServerError)
 		return
 	}
-	defer dest.Close()
+	defer func() { _ = dest.Close() }()
 
 	if _, err := io.Copy(dest, file); err != nil {
 		http.Error(w, "Failed to write file", http.StatusInternalServerError)
@@ -90,7 +92,7 @@ func (h *UploadHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"id":   createdIcon.ID,
 		"url":  createdIcon.URL,
 		"name": createdIcon.Name,

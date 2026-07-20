@@ -6,6 +6,7 @@ import (
 	"todo-backend/models"
 )
 
+// LibraryRepository ...
 type LibraryRepository interface {
 	CreateDocument(doc models.LibraryDocument) (models.LibraryDocument, error)
 	GetDocumentsByUserID(userID int) ([]models.LibraryDocument, error)
@@ -13,14 +14,17 @@ type LibraryRepository interface {
 	DeleteDocument(id int, userID int) error
 }
 
+// PostgresLibraryRepository ...
 type PostgresLibraryRepository struct {
 	db *sql.DB
 }
 
+// NewLibraryRepository ...
 func NewLibraryRepository(db *sql.DB) LibraryRepository {
 	return &PostgresLibraryRepository{db: db}
 }
 
+// CreateDocument ...
 func (r *PostgresLibraryRepository) CreateDocument(doc models.LibraryDocument) (models.LibraryDocument, error) {
 	query := `
 		INSERT INTO library_documents (user_id, original_name, filename, filepath, size, mime_type)
@@ -35,6 +39,7 @@ func (r *PostgresLibraryRepository) CreateDocument(doc models.LibraryDocument) (
 	return doc, nil
 }
 
+// GetDocumentsByUserID ...
 func (r *PostgresLibraryRepository) GetDocumentsByUserID(userID int) ([]models.LibraryDocument, error) {
 	query := `
 		SELECT id, user_id, original_name, filename, filepath, size, mime_type, created_at
@@ -46,7 +51,7 @@ func (r *PostgresLibraryRepository) GetDocumentsByUserID(userID int) ([]models.L
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var docs []models.LibraryDocument
 	for rows.Next() {
@@ -59,6 +64,7 @@ func (r *PostgresLibraryRepository) GetDocumentsByUserID(userID int) ([]models.L
 	return docs, nil
 }
 
+// GetDocumentByID ...
 func (r *PostgresLibraryRepository) GetDocumentByID(id int, userID int) (models.LibraryDocument, error) {
 	query := `
 		SELECT id, user_id, original_name, filename, filepath, size, mime_type, created_at
@@ -74,6 +80,7 @@ func (r *PostgresLibraryRepository) GetDocumentByID(id int, userID int) (models.
 	return doc, err
 }
 
+// DeleteDocument ...
 func (r *PostgresLibraryRepository) DeleteDocument(id int, userID int) error {
 	query := `DELETE FROM library_documents WHERE id = $1 AND user_id = $2`
 	result, err := r.db.Exec(query, id, userID)

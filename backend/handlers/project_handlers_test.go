@@ -25,6 +25,7 @@ func setupProjectRouter() *chi.Mux {
 	return r
 }
 
+// TestCreateProject ...
 func TestCreateProject(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
@@ -46,18 +47,19 @@ func TestCreateProject(t *testing.T) {
 	}
 
 	var responseProject models.Project
-	json.NewDecoder(rr.Body).Decode(&responseProject)
+	_ = json.NewDecoder(rr.Body).Decode(&responseProject)
 	if responseProject.Name != "Test Project" {
 		t.Errorf("expected name to be 'Test Project', got %v", responseProject.Name)
 	}
 }
 
+// TestGetProjects ...
 func TestGetProjects(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupProjectRouter()
 
-	database.DB.Exec(`INSERT INTO projects (user_id, name, description) VALUES (1, 'Test Project 1', 'Desc')`)
+	_, _ = database.DB.Exec(`INSERT INTO projects (user_id, name, description) VALUES (1, 'Test Project 1', 'Desc')`)
 
 	req, _ := http.NewRequest("GET", "/api/projects", nil)
 	rr := httptest.NewRecorder()
@@ -68,19 +70,20 @@ func TestGetProjects(t *testing.T) {
 	}
 
 	var projects []models.Project
-	json.NewDecoder(rr.Body).Decode(&projects)
+	_ = json.NewDecoder(rr.Body).Decode(&projects)
 	if len(projects) != 1 {
 		t.Errorf("expected 1 project, got %v", len(projects))
 	}
 }
 
+// TestGetProject ...
 func TestGetProject(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupProjectRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO projects (user_id, name, description) VALUES (1, 'Test Project 1', 'Desc') RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO projects (user_id, name, description) VALUES (1, 'Test Project 1', 'Desc') RETURNING id`).Scan(&id)
 
 	req, _ := http.NewRequest("GET", "/api/projects/"+strconv.Itoa(id), nil)
 	rr := httptest.NewRecorder()
@@ -91,19 +94,20 @@ func TestGetProject(t *testing.T) {
 	}
 
 	var p models.Project
-	json.NewDecoder(rr.Body).Decode(&p)
+	_ = json.NewDecoder(rr.Body).Decode(&p)
 	if p.Name != "Test Project 1" {
 		t.Errorf("expected name Test Project 1, got %v", p.Name)
 	}
 }
 
+// TestUpdateProject ...
 func TestUpdateProject(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupProjectRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO projects (user_id, name, description) VALUES (1, 'Test Project 1', 'Desc') RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO projects (user_id, name, description) VALUES (1, 'Test Project 1', 'Desc') RETURNING id`).Scan(&id)
 
 	project := models.Project{
 		Name:        "Updated Project",
@@ -120,19 +124,20 @@ func TestUpdateProject(t *testing.T) {
 	}
 
 	var responseProject models.Project
-	json.NewDecoder(rr.Body).Decode(&responseProject)
+	_ = json.NewDecoder(rr.Body).Decode(&responseProject)
 	if responseProject.Name != "Updated Project" {
 		t.Errorf("expected name to be 'Updated Project', got %v", responseProject.Name)
 	}
 }
 
+// TestDeleteProject ...
 func TestDeleteProject(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupProjectRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO projects (user_id, name, description) VALUES (1, 'Test Project 1', 'Desc') RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO projects (user_id, name, description) VALUES (1, 'Test Project 1', 'Desc') RETURNING id`).Scan(&id)
 
 	req, _ := http.NewRequest("DELETE", "/api/projects/"+strconv.Itoa(id), nil)
 	rr := httptest.NewRecorder()
@@ -143,7 +148,7 @@ func TestDeleteProject(t *testing.T) {
 	}
 
 	var count int
-	database.DB.QueryRow("SELECT COUNT(*) FROM projects WHERE id = $1", id).Scan(&count)
+	_ = database.DB.QueryRow("SELECT COUNT(*) FROM projects WHERE id = $1", id).Scan(&count)
 	if count != 0 {
 		t.Errorf("expected 0 projects, got %v", count)
 	}

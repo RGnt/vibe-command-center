@@ -41,3 +41,17 @@ services:
     depends_on:
       - backend
     restart: on-failure
+
+  agent-harness:
+    build:
+      context: ../agent-harness
+      dockerfile: Dockerfile
+    environment:
+      - BACKEND_URL=http://backend:8080/api
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://host.docker.internal:8091/v1}
+      - LLM_API_KEY=${LLM_API_KEY:-ollama}
+      - LLM_MODEL=${LLM_MODEL:-Gemma4}
+      - MAX_TURNS=${MAX_TURNS:-25}
+    depends_on:
+      - backend
+    restart: on-failure

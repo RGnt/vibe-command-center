@@ -21,19 +21,20 @@ func setupUploadRouter() *chi.Mux {
 	return r
 }
 
+// TestUploadFile ...
 func TestUploadFile(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupUploadRouter()
 
 	// Clean up uploads directory if it exists
-	os.RemoveAll("uploads")
+	_ = os.RemoveAll("uploads")
 
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
 	part, _ := writer.CreateFormFile("file", "testimage.png")
-	part.Write([]byte("fake image data"))
-	writer.Close()
+	_, _ = part.Write([]byte("fake image data"))
+	_ = writer.Close()
 
 	req, _ := http.NewRequest("POST", "/api/upload", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -46,7 +47,7 @@ func TestUploadFile(t *testing.T) {
 	}
 
 	var resp map[string]interface{}
-	json.NewDecoder(rr.Body).Decode(&resp)
+	_ = json.NewDecoder(rr.Body).Decode(&resp)
 
 	if resp["url"] == nil {
 		t.Errorf("expected url in response")
@@ -54,11 +55,11 @@ func TestUploadFile(t *testing.T) {
 
 	// Verify DB entry
 	var count int
-	database.DB.QueryRow("SELECT COUNT(*) FROM icons WHERE user_id = 1").Scan(&count)
+	_ = database.DB.QueryRow("SELECT COUNT(*) FROM icons WHERE user_id = 1").Scan(&count)
 	if count != 1 {
 		t.Errorf("expected 1 icon in db, got %v", count)
 	}
 
 	// Clean up
-	os.RemoveAll("uploads")
+	_ = os.RemoveAll("uploads")
 }

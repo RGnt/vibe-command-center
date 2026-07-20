@@ -6,16 +6,19 @@ import (
 	"todo-backend/repository"
 )
 
+// GraphHandler ...
 type GraphHandler struct {
 	graphRepo repository.GraphRepository
 }
 
+// NewGraphHandler ...
 func NewGraphHandler(graphRepo repository.GraphRepository) *GraphHandler {
 	return &GraphHandler{
 		graphRepo: graphRepo,
 	}
 }
 
+// GetGraph ...
 func (h *GraphHandler) GetGraph(w http.ResponseWriter, r *http.Request) {
 	graphData, err := h.graphRepo.GetGraph()
 	if err != nil {
@@ -24,5 +27,5 @@ func (h *GraphHandler) GetGraph(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(graphData)
+	_ = json.NewEncoder(w).Encode(graphData)
 }

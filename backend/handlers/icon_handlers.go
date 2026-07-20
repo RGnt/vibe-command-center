@@ -10,16 +10,19 @@ import (
 	"log"
 )
 
+// IconHandler ...
 type IconHandler struct {
 	iconService service.IconService
 }
 
+// NewIconHandler ...
 func NewIconHandler(iconService service.IconService) *IconHandler {
 	return &IconHandler{
 		iconService: iconService,
 	}
 }
 
+// GetIcons ...
 func (h *IconHandler) GetIcons(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -39,9 +42,10 @@ func (h *IconHandler) GetIcons(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(icons)
+	_ = json.NewEncoder(w).Encode(icons)
 }
 
+// UpdateIcon ...
 func (h *IconHandler) UpdateIcon(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -63,9 +67,10 @@ func (h *IconHandler) UpdateIcon(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updatedIcon)
+	_ = json.NewEncoder(w).Encode(updatedIcon)
 }
 
+// DeleteIcon ...
 func (h *IconHandler) DeleteIcon(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

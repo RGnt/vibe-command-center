@@ -9,16 +9,19 @@ import (
 	"todo-backend/service"
 )
 
+// UserHandler ...
 type UserHandler struct {
 	userService service.UserService
 }
 
+// NewUserHandler ...
 func NewUserHandler(userService service.UserService) *UserHandler {
 	return &UserHandler{
 		userService: userService,
 	}
 }
 
+// GetUserSettings ...
 func (h *UserHandler) GetUserSettings(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -32,9 +35,10 @@ func (h *UserHandler) GetUserSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(settings)
+	_ = json.NewEncoder(w).Encode(settings)
 }
 
+// UpdateUserSettings ...
 func (h *UserHandler) UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -54,5 +58,5 @@ func (h *UserHandler) UpdateUserSettings(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	json.NewEncoder(w).Encode(updatedSettings)
+	_ = json.NewEncoder(w).Encode(updatedSettings)
 }

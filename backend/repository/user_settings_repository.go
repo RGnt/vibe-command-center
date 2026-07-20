@@ -5,6 +5,7 @@ import (
 	"todo-backend/models"
 )
 
+// UserSettingsRepository ...
 type UserSettingsRepository interface {
 	GetByUserID(userID int) (models.UserSettings, error)
 	Upsert(settings models.UserSettings) error
@@ -14,10 +15,12 @@ type userSettingsRepository struct {
 	db *sql.DB
 }
 
+// NewUserSettingsRepository ...
 func NewUserSettingsRepository(db *sql.DB) UserSettingsRepository {
 	return &userSettingsRepository{db: db}
 }
 
+// GetByUserID ...
 func (r *userSettingsRepository) GetByUserID(userID int) (models.UserSettings, error) {
 	var settings models.UserSettings
 	err := r.db.QueryRow(`
@@ -28,6 +31,7 @@ func (r *userSettingsRepository) GetByUserID(userID int) (models.UserSettings, e
 	return settings, err
 }
 
+// Upsert ...
 func (r *userSettingsRepository) Upsert(settings models.UserSettings) error {
 	_, err := r.db.Exec(`
 		INSERT INTO user_settings (user_id, theme, default_project_id) 

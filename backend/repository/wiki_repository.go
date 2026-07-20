@@ -6,6 +6,7 @@ import (
 	"todo-backend/models"
 )
 
+// WikiRepository ...
 type WikiRepository interface {
 	GetAllByUserID(userID int) ([]models.WikiPage, error)
 	GetAllByProjectID(userID int, projectID int) ([]models.WikiPage, error)
@@ -19,16 +20,18 @@ type wikiRepository struct {
 	db *sql.DB
 }
 
+// NewWikiRepository ...
 func NewWikiRepository(db *sql.DB) WikiRepository {
 	return &wikiRepository{db: db}
 }
 
+// GetAllByUserID ...
 func (r *wikiRepository) GetAllByUserID(userID int) ([]models.WikiPage, error) {
 	rows, err := r.db.Query(`SELECT id, project_id, category, title, slug, content, created_at, updated_at FROM wiki_pages WHERE user_id = $1 ORDER BY category, title`, userID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var wikis []models.WikiPage
 	for rows.Next() {
@@ -56,6 +59,7 @@ func (r *wikiRepository) GetAllByUserID(userID int) ([]models.WikiPage, error) {
 	return wikis, nil
 }
 
+// GetBySlugAndUserID ...
 func (r *wikiRepository) GetBySlugAndUserID(slug string, userID int) (models.WikiPage, error) {
 	var wiki models.WikiPage
 	var projectID sql.NullInt64
@@ -79,6 +83,7 @@ func (r *wikiRepository) GetBySlugAndUserID(slug string, userID int) (models.Wik
 	return wiki, nil
 }
 
+// Create ...
 func (r *wikiRepository) Create(wiki models.WikiPage) (models.WikiPage, error) {
 	var id int64
 	query := `INSERT INTO wiki_pages (user_id, project_id, category, title, slug, content) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
@@ -94,6 +99,7 @@ func (r *wikiRepository) Create(wiki models.WikiPage) (models.WikiPage, error) {
 	return wiki, nil
 }
 
+// Update ...
 func (r *wikiRepository) Update(id int, wiki models.WikiPage) (models.WikiPage, error) {
 	query := `UPDATE wiki_pages SET category = $1, title = $2, slug = $3, content = $4, project_id = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 AND user_id = $7`
 	_, err := r.db.Exec(query, wiki.Category, wiki.Title, wiki.Slug, wiki.Content, wiki.ProjectID, id, wiki.UserID)
@@ -105,6 +111,7 @@ func (r *wikiRepository) Update(id int, wiki models.WikiPage) (models.WikiPage, 
 	return wiki, nil
 }
 
+// Delete ...
 func (r *wikiRepository) Delete(id int, userID int) error {
 	_, err := r.db.Exec("DELETE FROM wiki_pages WHERE id = $1 AND user_id = $2", id, userID)
 	return err

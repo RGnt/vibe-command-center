@@ -24,12 +24,14 @@ import (
 	"github.com/google/uuid"
 )
 
+// LibraryHandler ...
 type LibraryHandler struct {
 	libraryService service.LibraryService
 	wikiService    service.WikiService
 	graphRepo      repository.GraphRepository
 }
 
+// NewLibraryHandler ...
 func NewLibraryHandler(libraryService service.LibraryService, wikiService service.WikiService, graphRepo repository.GraphRepository) *LibraryHandler {
 	return &LibraryHandler{
 		libraryService: libraryService,
@@ -38,6 +40,7 @@ func NewLibraryHandler(libraryService service.LibraryService, wikiService servic
 	}
 }
 
+// UploadDocument ...
 func (h *LibraryHandler) UploadDocument(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -46,14 +49,14 @@ func (h *LibraryHandler) UploadDocument(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// 50 MB limit
-	r.ParseMultipartForm(50 << 20)
+	_ = r.ParseMultipartForm(50 << 20)
 
 	file, handler, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, "Failed to retrieve file", http.StatusBadRequest)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	ext := strings.ToLower(filepath.Ext(handler.Filename))
 
@@ -73,7 +76,7 @@ func (h *LibraryHandler) UploadDocument(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Failed to save file", http.StatusInternalServerError)
 		return
 	}
-	defer dest.Close()
+	defer func() { _ = dest.Close() }()
 
 	size, err := io.Copy(dest, file)
 	if err != nil {
@@ -104,9 +107,10 @@ func (h *LibraryHandler) UploadDocument(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdDoc)
+	_ = json.NewEncoder(w).Encode(createdDoc)
 }
 
+// ListDocuments ...
 func (h *LibraryHandler) ListDocuments(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -121,9 +125,10 @@ func (h *LibraryHandler) ListDocuments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(docs)
+	_ = json.NewEncoder(w).Encode(docs)
 }
 
+// DownloadDocument ...
 func (h *LibraryHandler) DownloadDocument(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -149,15 +154,16 @@ func (h *LibraryHandler) DownloadDocument(w http.ResponseWriter, r *http.Request
 		http.Error(w, "File not found on disk", http.StatusNotFound)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	w.Header().Set("Content-Disposition", "attachment; filename=\""+doc.OriginalName+"\"")
 	w.Header().Set("Content-Type", doc.MimeType)
 	w.Header().Set("Content-Length", strconv.FormatInt(doc.Size, 10))
 
-	io.Copy(w, file)
+	_, _ = io.Copy(w, file)
 }
 
+// DeleteDocument ...
 func (h *LibraryHandler) DeleteDocument(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -183,10 +189,11 @@ func (h *LibraryHandler) DeleteDocument(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	os.Remove(doc.Filepath)
+	_ = os.Remove(doc.Filepath)
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// IngestDocument ...
 func (h *LibraryHandler) IngestDocument(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -228,7 +235,7 @@ func (h *LibraryHandler) IngestDocument(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Failed to communicate with agent harness", http.StatusInternalServerError)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -261,10 +268,10 @@ func (h *LibraryHandler) IngestDocument(w http.ResponseWriter, r *http.Request) 
 
 			status, _ := event["status"].(string)
 			if status == "processing" || status == "extracting_graph" {
-				fmt.Fprintf(w, "data: %s\n\n", data)
+				_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 				flusher.Flush()
 			} else if status == "error" {
-				fmt.Fprintf(w, "data: %s\n\n", data)
+				_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 				flusher.Flush()
 				return
 			} else if status == "complete" {
@@ -288,14 +295,14 @@ func (h *LibraryHandler) IngestDocument(w http.ResponseWriter, r *http.Request) 
 
 						// Save it as a LibraryDocument
 						uploadDir := filepath.Join("storage", "library")
-						os.MkdirAll(uploadDir, os.ModePerm)
+						_ = os.MkdirAll(uploadDir, os.ModePerm)
 						newFilename := uuid.New().String() + "." + ext
 						filePath := filepath.Join(uploadDir, newFilename)
 
 						dest, err := os.Create(filePath)
 						if err == nil {
-							dest.Write(imgBytes)
-							dest.Close()
+							_, _ = dest.Write(imgBytes)
+							_ = dest.Close()
 
 							docRecord := models.LibraryDocument{
 								UserID:       userID,
@@ -342,7 +349,7 @@ func (h *LibraryHandler) IngestDocument(w http.ResponseWriter, r *http.Request) 
 				createdWiki, err := h.wikiService.CreateWiki(userID, newWiki)
 				if err != nil {
 					errMsg, _ := json.Marshal(map[string]string{"status": "error", "detail": "Failed to create wiki page"})
-					fmt.Fprintf(w, "data: %s\n\n", string(errMsg))
+					_, _ = fmt.Fprintf(w, "data: %s\n\n", string(errMsg))
 					flusher.Flush()
 					return
 				}
@@ -351,7 +358,7 @@ func (h *LibraryHandler) IngestDocument(w http.ResponseWriter, r *http.Request) 
 					"status": "complete",
 					"wiki":   createdWiki,
 				})
-				fmt.Fprintf(w, "data: %s\n\n", string(successMsg))
+				_, _ = fmt.Fprintf(w, "data: %s\n\n", string(successMsg))
 				flusher.Flush()
 				return
 			}
@@ -361,7 +368,7 @@ func (h *LibraryHandler) IngestDocument(w http.ResponseWriter, r *http.Request) 
 	if err := scanner.Err(); err != nil {
 		log.Println("Error reading agent stream:", err)
 		errMsg, _ := json.Marshal(map[string]string{"status": "error", "detail": "Stream reading failed"})
-		fmt.Fprintf(w, "data: %s\n\n", string(errMsg))
+		_, _ = fmt.Fprintf(w, "data: %s\n\n", string(errMsg))
 		flusher.Flush()
 	}
 }

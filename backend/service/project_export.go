@@ -6,6 +6,7 @@ import (
 	"todo-backend/models"
 )
 
+// ExportProject ...
 func (s *projectService) ExportProject(id, userID int) (models.ProjectExportPayload, error) {
 	var payload models.ProjectExportPayload
 
@@ -30,28 +31,7 @@ func (s *projectService) ExportProject(id, userID int) (models.ProjectExportPayl
 		return payload, err
 	}
 
-	// Build the nested structure (O(N^2) naive, but typically small N)
-	// Actually, O(N) by using a map
-	todoMap := make(map[int]*models.Todo)
-	for i := range flatTodos {
-		todoMap[flatTodos[i].ID] = &flatTodos[i]
-	}
-
-	var rootTodos []models.Todo
-	for _, todo := range flatTodos {
-		if todo.ParentID != nil {
-			if parent, exists := todoMap[*todo.ParentID]; exists {
-				parent.Subtasks = append(parent.Subtasks, todo)
-			}
-		} else {
-			rootTodos = append(rootTodos, todo)
-		}
-	}
-
-	// We need to re-traverse the rootTodos to ensure they have the deep nested subtasks
-	// actually the above appends by value to parent.Subtasks! Oh no!
-	// It's better to build recursively.
-	
+	// Build the nested structure
 	payload.Todos = buildTodoTree(flatTodos, nil)
 
 	// 4. Fetch Wikis
@@ -75,6 +55,7 @@ func buildTodoTree(flatTodos []models.Todo, parentID *int) []models.Todo {
 	return result
 }
 
+// ImportProject ...
 func (s *projectService) ImportProject(userID int, payload models.ProjectExportPayload) (models.Project, error) {
 	// Start by creating workflow if it exists
 	var workflowID *int

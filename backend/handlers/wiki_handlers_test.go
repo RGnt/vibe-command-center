@@ -25,6 +25,7 @@ func setupWikiRouter() *chi.Mux {
 	return r
 }
 
+// TestCreateWiki ...
 func TestCreateWiki(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
@@ -46,7 +47,7 @@ func TestCreateWiki(t *testing.T) {
 	}
 
 	var responseWiki models.WikiPage
-	json.NewDecoder(rr.Body).Decode(&responseWiki)
+	_ = json.NewDecoder(rr.Body).Decode(&responseWiki)
 	if responseWiki.Title != "Test Wiki" {
 		t.Errorf("expected title to be 'Test Wiki', got %v", responseWiki.Title)
 	}
@@ -55,12 +56,13 @@ func TestCreateWiki(t *testing.T) {
 	}
 }
 
+// TestGetWikis ...
 func TestGetWikis(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupWikiRouter()
 
-	database.DB.Exec(`INSERT INTO wiki_pages (user_id, title, slug, content) VALUES (1, 'Test Wiki', 'test-wiki', 'Content')`)
+	_, _ = database.DB.Exec(`INSERT INTO wiki_pages (user_id, title, slug, content) VALUES (1, 'Test Wiki', 'test-wiki', 'Content')`)
 
 	req, _ := http.NewRequest("GET", "/api/wikis", nil)
 	rr := httptest.NewRecorder()
@@ -71,18 +73,19 @@ func TestGetWikis(t *testing.T) {
 	}
 
 	var wikis []models.WikiPage
-	json.NewDecoder(rr.Body).Decode(&wikis)
+	_ = json.NewDecoder(rr.Body).Decode(&wikis)
 	if len(wikis) != 1 {
 		t.Errorf("expected 1 wiki, got %v", len(wikis))
 	}
 }
 
+// TestGetWiki ...
 func TestGetWiki(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupWikiRouter()
 
-	database.DB.Exec(`INSERT INTO wiki_pages (user_id, title, slug, content) VALUES (1, 'Test Wiki', 'test-wiki', 'Content')`)
+	_, _ = database.DB.Exec(`INSERT INTO wiki_pages (user_id, title, slug, content) VALUES (1, 'Test Wiki', 'test-wiki', 'Content')`)
 
 	req, _ := http.NewRequest("GET", "/api/wikis/test-wiki", nil)
 	rr := httptest.NewRecorder()
@@ -93,19 +96,20 @@ func TestGetWiki(t *testing.T) {
 	}
 
 	var w models.WikiPage
-	json.NewDecoder(rr.Body).Decode(&w)
+	_ = json.NewDecoder(rr.Body).Decode(&w)
 	if w.Slug != "test-wiki" {
 		t.Errorf("expected slug test-wiki, got %v", w.Slug)
 	}
 }
 
+// TestUpdateWiki ...
 func TestUpdateWiki(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupWikiRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO wiki_pages (user_id, title, slug, content) VALUES (1, 'Test Wiki', 'test-wiki', 'Content') RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO wiki_pages (user_id, title, slug, content) VALUES (1, 'Test Wiki', 'test-wiki', 'Content') RETURNING id`).Scan(&id)
 
 	wiki := models.WikiPage{
 		Title:   "Updated Wiki",
@@ -123,19 +127,20 @@ func TestUpdateWiki(t *testing.T) {
 	}
 
 	var responseWiki models.WikiPage
-	json.NewDecoder(rr.Body).Decode(&responseWiki)
+	_ = json.NewDecoder(rr.Body).Decode(&responseWiki)
 	if responseWiki.Title != "Updated Wiki" {
 		t.Errorf("expected title to be 'Updated Wiki', got %v", responseWiki.Title)
 	}
 }
 
+// TestDeleteWiki ...
 func TestDeleteWiki(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupWikiRouter()
 
 	var id int
-	database.DB.QueryRow(`INSERT INTO wiki_pages (user_id, title, slug, content) VALUES (1, 'Test Wiki', 'test-wiki', 'Content') RETURNING id`).Scan(&id)
+	_ = database.DB.QueryRow(`INSERT INTO wiki_pages (user_id, title, slug, content) VALUES (1, 'Test Wiki', 'test-wiki', 'Content') RETURNING id`).Scan(&id)
 
 	req, _ := http.NewRequest("DELETE", "/api/wikis/"+strconv.Itoa(id), nil)
 	rr := httptest.NewRecorder()
@@ -146,7 +151,7 @@ func TestDeleteWiki(t *testing.T) {
 	}
 
 	var count int
-	database.DB.QueryRow("SELECT COUNT(*) FROM wiki_pages WHERE id = $1", id).Scan(&count)
+	_ = database.DB.QueryRow("SELECT COUNT(*) FROM wiki_pages WHERE id = $1", id).Scan(&count)
 	if count != 0 {
 		t.Errorf("expected 0 wikis, got %v", count)
 	}

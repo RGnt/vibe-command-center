@@ -13,16 +13,19 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// ProjectHandler ...
 type ProjectHandler struct {
 	projectService service.ProjectService
 }
 
+// NewProjectHandler ...
 func NewProjectHandler(projectService service.ProjectService) *ProjectHandler {
 	return &ProjectHandler{
 		projectService: projectService,
 	}
 }
 
+// GetProjects ...
 func (h *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -41,9 +44,10 @@ func (h *ProjectHandler) GetProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(projects)
+	_ = json.NewEncoder(w).Encode(projects)
 }
 
+// GetProject ...
 func (h *ProjectHandler) GetProject(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -68,9 +72,10 @@ func (h *ProjectHandler) GetProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(project)
+	_ = json.NewEncoder(w).Encode(project)
 }
 
+// CreateProject ...
 func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -92,9 +97,10 @@ func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdProject)
+	_ = json.NewEncoder(w).Encode(createdProject)
 }
 
+// UpdateProject ...
 func (h *ProjectHandler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -121,9 +127,10 @@ func (h *ProjectHandler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updatedProject)
+	_ = json.NewEncoder(w).Encode(updatedProject)
 }
 
+// DeleteProject ...
 func (h *ProjectHandler) DeleteProject(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {

@@ -20,7 +20,7 @@ import (
 func main() {
 	// Initialize database
 	database.InitDB()
-	defer database.DB.Close()
+	defer func() { _ = database.DB.Close() }()
 
 	// Initialize dependencies
 	jwtSecret := os.Getenv("JWT_SECRET")

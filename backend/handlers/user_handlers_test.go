@@ -21,12 +21,13 @@ func setupUserRouter() *chi.Mux {
 	return r
 }
 
+// TestGetUserSettings ...
 func TestGetUserSettings(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupUserRouter()
 
-	database.DB.Exec(`INSERT INTO user_settings (user_id, theme, default_project_id) VALUES (1, 'dark', NULL)`)
+	_, _ = database.DB.Exec(`INSERT INTO user_settings (user_id, theme, default_project_id) VALUES (1, 'dark', NULL)`)
 
 	req, _ := http.NewRequest("GET", "/api/user/settings", nil)
 	rr := httptest.NewRecorder()
@@ -37,18 +38,19 @@ func TestGetUserSettings(t *testing.T) {
 	}
 
 	var settings models.UserSettings
-	json.NewDecoder(rr.Body).Decode(&settings)
+	_ = json.NewDecoder(rr.Body).Decode(&settings)
 	if settings.Theme != "dark" {
 		t.Errorf("expected theme dark, got %v", settings.Theme)
 	}
 }
 
+// TestUpdateUserSettings ...
 func TestUpdateUserSettings(t *testing.T) {
 	testutils.ClearDB()
 	setupTestUser()
 	r := setupUserRouter()
 
-	database.DB.Exec(`INSERT INTO user_settings (user_id, theme, default_project_id) VALUES (1, 'dark', NULL)`)
+	_, _ = database.DB.Exec(`INSERT INTO user_settings (user_id, theme, default_project_id) VALUES (1, 'dark', NULL)`)
 
 	newSettings := models.UserSettings{
 		Theme: "light",
@@ -64,7 +66,7 @@ func TestUpdateUserSettings(t *testing.T) {
 	}
 
 	var responseSettings models.UserSettings
-	json.NewDecoder(rr.Body).Decode(&responseSettings)
+	_ = json.NewDecoder(rr.Body).Decode(&responseSettings)
 	if responseSettings.Theme != "light" {
 		t.Errorf("expected theme to be 'light', got %v", responseSettings.Theme)
 	}

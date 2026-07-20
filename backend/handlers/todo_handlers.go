@@ -14,10 +14,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// TodoHandler ...
 type TodoHandler struct {
 	todoService service.TodoService
 }
 
+// NewTodoHandler ...
 func NewTodoHandler(todoService service.TodoService) *TodoHandler {
 	return &TodoHandler{
 		todoService: todoService,
@@ -50,7 +52,7 @@ func (h *TodoHandler) GetTodos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(todos)
+	_ = json.NewEncoder(w).Encode(todos)
 }
 
 // GetTodo gets a single todo by ID
@@ -78,7 +80,7 @@ func (h *TodoHandler) GetTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(todo)
+	_ = json.NewEncoder(w).Encode(todo)
 }
 
 // CreateTodo creates a new todo
@@ -103,7 +105,7 @@ func (h *TodoHandler) CreateTodo(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdTodo)
+	_ = json.NewEncoder(w).Encode(createdTodo)
 }
 
 // CreateSubtask creates a subtask for a todo
@@ -138,7 +140,7 @@ func (h *TodoHandler) CreateSubtask(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdSubtask)
+	_ = json.NewEncoder(w).Encode(createdSubtask)
 }
 
 // UpdateTodo updates a todo
@@ -168,7 +170,7 @@ func (h *TodoHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(todo)
+	_ = json.NewEncoder(w).Encode(todo)
 }
 
 // DeleteTodo deletes a todo
@@ -219,7 +221,7 @@ func (h *TodoHandler) ToggleTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(todo)
+	_ = json.NewEncoder(w).Encode(todo)
 }
 
 // GetTodosByStage gets todos grouped by stage
@@ -245,7 +247,7 @@ func (h *TodoHandler) GetTodosByStage(w http.ResponseWriter, r *http.Request) {
 				dbStages = append(dbStages, stage)
 			}
 		}
-		stageRows.Close()
+		_ = stageRows.Close()
 		if len(dbStages) > 0 {
 			stages = dbStages
 		}
@@ -258,5 +260,5 @@ func (h *TodoHandler) GetTodosByStage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result)
 }

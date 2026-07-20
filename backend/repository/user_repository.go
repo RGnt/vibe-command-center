@@ -7,9 +7,12 @@ import (
 	"todo-backend/models"
 )
 
+// ErrUserNotFound ...
 var ErrUserNotFound = errors.New("user not found")
+// ErrEmailExists ...
 var ErrEmailExists = errors.New("email might already exist")
 
+// UserRepository ...
 type UserRepository interface {
 	CreateUser(email, passwordHash string) (models.User, error)
 	GetUserByEmail(email string) (models.User, string, error)
@@ -20,10 +23,12 @@ type postgresUserRepository struct {
 	db *sql.DB
 }
 
+// NewPostgresUserRepository ...
 func NewPostgresUserRepository(db *sql.DB) UserRepository {
 	return &postgresUserRepository{db: db}
 }
 
+// CreateUser ...
 func (r *postgresUserRepository) CreateUser(email, passwordHash string) (models.User, error) {
 	var user models.User
 
@@ -32,7 +37,7 @@ func (r *postgresUserRepository) CreateUser(email, passwordHash string) (models.
 	if err != nil {
 		return user, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	err = tx.QueryRow(`
 		INSERT INTO users (email, password_hash)
@@ -90,6 +95,7 @@ func (r *postgresUserRepository) CreateUser(email, passwordHash string) (models.
 	return user, nil
 }
 
+// GetUserByEmail ...
 func (r *postgresUserRepository) GetUserByEmail(email string) (models.User, string, error) {
 	var user models.User
 	var hash string
@@ -103,6 +109,7 @@ func (r *postgresUserRepository) GetUserByEmail(email string) (models.User, stri
 	return user, hash, nil
 }
 
+// GetUserByID ...
 func (r *postgresUserRepository) GetUserByID(id int) (models.User, error) {
 	var user models.User
 	err := r.db.QueryRow(`SELECT id, email, created_at FROM users WHERE id = $1`, id).Scan(&user.ID, &user.Email, &user.CreatedAt)

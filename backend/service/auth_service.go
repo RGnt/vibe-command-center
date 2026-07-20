@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// ErrInvalidCredentials ...
 var ErrInvalidCredentials = errors.New("invalid credentials")
 
 // Claims matches the structure in middleware
@@ -19,6 +20,7 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+// AuthService ...
 type AuthService interface {
 	Register(email, password string) (models.User, string, error)
 	Login(email, password string) (models.User, string, error)
@@ -30,6 +32,7 @@ type authService struct {
 	jwtKey   []byte
 }
 
+// NewAuthService ...
 func NewAuthService(userRepo repository.UserRepository, jwtKey []byte) AuthService {
 	return &authService{
 		userRepo: userRepo,
@@ -37,6 +40,7 @@ func NewAuthService(userRepo repository.UserRepository, jwtKey []byte) AuthServi
 	}
 }
 
+// Register ...
 func (s *authService) Register(email, password string) (models.User, string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -56,6 +60,7 @@ func (s *authService) Register(email, password string) (models.User, string, err
 	return user, token, nil
 }
 
+// Login ...
 func (s *authService) Login(email, password string) (models.User, string, error) {
 	user, hash, err := s.userRepo.GetUserByEmail(email)
 	if err != nil {
@@ -77,6 +82,7 @@ func (s *authService) Login(email, password string) (models.User, string, error)
 	return user, token, nil
 }
 
+// GetUserByID ...
 func (s *authService) GetUserByID(id int) (models.User, error) {
 	return s.userRepo.GetUserByID(id)
 }

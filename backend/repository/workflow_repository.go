@@ -6,6 +6,7 @@ import (
 	"todo-backend/models"
 )
 
+// WorkflowRepository ...
 type WorkflowRepository interface {
 	GetAllByUserID(userID int) ([]models.Workflow, error)
 	GetByIDAndUserID(id, userID int) (models.Workflow, error)
@@ -18,16 +19,18 @@ type workflowRepository struct {
 	db *sql.DB
 }
 
+// NewWorkflowRepository ...
 func NewWorkflowRepository(db *sql.DB) WorkflowRepository {
 	return &workflowRepository{db: db}
 }
 
+// GetAllByUserID ...
 func (r *workflowRepository) GetAllByUserID(userID int) ([]models.Workflow, error) {
 	rows, err := r.db.Query(`SELECT id, name, created_at FROM workflows WHERE user_id = $1 ORDER BY created_at DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var workflows []models.Workflow
 	for rows.Next() {
@@ -45,7 +48,7 @@ func (r *workflowRepository) GetAllByUserID(userID int) ([]models.Workflow, erro
 		if err != nil {
 			return nil, err
 		}
-		defer stageRows.Close()
+		defer func() { _ = stageRows.Close() }()
 
 		var stages []models.WorkflowStage
 		for stageRows.Next() {
@@ -64,6 +67,7 @@ func (r *workflowRepository) GetAllByUserID(userID int) ([]models.Workflow, erro
 	return workflows, nil
 }
 
+// GetByIDAndUserID ...
 func (r *workflowRepository) GetByIDAndUserID(id, userID int) (models.Workflow, error) {
 	var workflow models.Workflow
 	var createdAt time.Time
@@ -81,7 +85,7 @@ func (r *workflowRepository) GetByIDAndUserID(id, userID int) (models.Workflow, 
 	if err != nil {
 		return workflow, err
 	}
-	defer stageRows.Close()
+	defer func() { _ = stageRows.Close() }()
 
 	var stages []models.WorkflowStage
 	for stageRows.Next() {
@@ -97,6 +101,7 @@ func (r *workflowRepository) GetByIDAndUserID(id, userID int) (models.Workflow, 
 	return workflow, nil
 }
 
+// Create ...
 func (r *workflowRepository) Create(workflow models.Workflow) (models.Workflow, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -107,7 +112,7 @@ func (r *workflowRepository) Create(workflow models.Workflow) (models.Workflow, 
 	query := `INSERT INTO workflows (user_id, name) VALUES ($1, $2) RETURNING id`
 	err = tx.QueryRow(query, workflow.UserID, workflow.Name).Scan(&id)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return workflow, err
 	}
 
@@ -115,7 +120,7 @@ func (r *workflowRepository) Create(workflow models.Workflow) (models.Workflow, 
 		stageQuery := `INSERT INTO workflow_stages (workflow_id, name, "order") VALUES ($1, $2, $3)`
 		_, err := tx.Exec(stageQuery, id, stage.Name, i+1)
 		if err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return workflow, err
 		}
 	}
@@ -128,6 +133,7 @@ func (r *workflowRepository) Create(workflow models.Workflow) (models.Workflow, 
 	return r.GetByIDAndUserID(int(id), workflow.UserID)
 }
 
+// Update ...
 func (r *workflowRepository) Update(workflow models.Workflow) error {
 	tx, err := r.db.Begin()
 	if err != nil {
@@ -136,13 +142,13 @@ func (r *workflowRepository) Update(workflow models.Workflow) error {
 
 	_, err = tx.Exec("UPDATE workflows SET name = $1 WHERE id = $2 AND user_id = $3", workflow.Name, workflow.ID, workflow.UserID)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 
 	_, err = tx.Exec("DELETE FROM workflow_stages WHERE workflow_id = $1", workflow.ID)
 	if err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 
@@ -150,7 +156,7 @@ func (r *workflowRepository) Update(workflow models.Workflow) error {
 		stageQuery := `INSERT INTO workflow_stages (workflow_id, name, "order") VALUES ($1, $2, $3)`
 		_, err := tx.Exec(stageQuery, workflow.ID, stage.Name, i+1)
 		if err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return err
 		}
 	}
@@ -158,6 +164,7 @@ func (r *workflowRepository) Update(workflow models.Workflow) error {
 	return tx.Commit()
 }
 
+// Delete ...
 func (r *workflowRepository) Delete(id, userID int) error {
 	_, err := r.db.Exec("DELETE FROM workflows WHERE id = $1 AND user_id = $2", id, userID)
 	return err

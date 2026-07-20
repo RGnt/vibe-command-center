@@ -5,6 +5,7 @@ import (
 	"todo-backend/repository"
 )
 
+// ProjectService ...
 type ProjectService interface {
 	GetProjects(userID int) ([]models.Project, error)
 	GetProject(id, userID int) (models.Project, error)
@@ -22,6 +23,7 @@ type projectService struct {
 	workflowRepo repository.WorkflowRepository
 }
 
+// NewProjectService ...
 func NewProjectService(
 	projectRepo repository.ProjectRepository,
 	todoRepo repository.TodoRepository,
@@ -36,19 +38,23 @@ func NewProjectService(
 	}
 }
 
+// GetProjects ...
 func (s *projectService) GetProjects(userID int) ([]models.Project, error) {
 	return s.projectRepo.GetAllByUserID(userID)
 }
 
+// GetProject ...
 func (s *projectService) GetProject(id, userID int) (models.Project, error) {
 	return s.projectRepo.GetByIDAndUserID(id, userID)
 }
 
+// CreateProject ...
 func (s *projectService) CreateProject(userID int, project models.Project) (models.Project, error) {
 	project.UserID = userID
 	return s.projectRepo.Create(project)
 }
 
+// UpdateProject ...
 func (s *projectService) UpdateProject(id, userID int, project models.Project) (models.Project, error) {
 	project.ID = id
 	project.UserID = userID
@@ -59,6 +65,7 @@ func (s *projectService) UpdateProject(id, userID int, project models.Project) (
 	return project, nil
 }
 
+// DeleteProject ...
 func (s *projectService) DeleteProject(id, userID int) error {
 	return s.projectRepo.Delete(id, userID)
 }

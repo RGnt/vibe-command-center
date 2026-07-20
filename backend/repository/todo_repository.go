@@ -6,6 +6,7 @@ import (
 	"todo-backend/models"
 )
 
+// TodoRepository ...
 type TodoRepository interface {
 	GetAllTopLevel(userID int, projectID *int) ([]models.Todo, error)
 	GetByIDAndUserID(id, userID int) (models.Todo, error)
@@ -24,10 +25,12 @@ type todoRepository struct {
 	db *sql.DB
 }
 
+// NewTodoRepository ...
 func NewTodoRepository(db *sql.DB) TodoRepository {
 	return &todoRepository{db: db}
 }
 
+// GetAllTopLevel ...
 func (r *todoRepository) GetAllTopLevel(userID int, projectID *int) ([]models.Todo, error) {
 	var rows *sql.Rows
 	var err error
@@ -43,7 +46,7 @@ func (r *todoRepository) GetAllTopLevel(userID int, projectID *int) ([]models.To
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var todos []models.Todo
 	for rows.Next() {
@@ -56,19 +59,21 @@ func (r *todoRepository) GetAllTopLevel(userID int, projectID *int) ([]models.To
 	return todos, nil
 }
 
+// GetByIDAndUserID ...
 func (r *todoRepository) GetByIDAndUserID(id, userID int) (models.Todo, error) {
 	row := r.db.QueryRow(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
 		FROM todos WHERE id = $1 AND user_id = $2`, id, userID)
 	return scanTodoRow(row, userID)
 }
 
+// GetSubtasks ...
 func (r *todoRepository) GetSubtasks(parentID, userID int) ([]models.Todo, error) {
 	rows, err := r.db.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
 		FROM todos WHERE parent_id = $1 AND user_id = $2 ORDER BY created_at DESC`, parentID, userID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var subtasks []models.Todo
 	for rows.Next() {
@@ -81,6 +86,7 @@ func (r *todoRepository) GetSubtasks(parentID, userID int) ([]models.Todo, error
 	return subtasks, nil
 }
 
+// Create ...
 func (r *todoRepository) Create(todo models.Todo) (models.Todo, error) {
 	var id int64
 	query := `INSERT INTO todos (user_id, title, content, stage, completed, project_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
@@ -92,6 +98,7 @@ func (r *todoRepository) Create(todo models.Todo) (models.Todo, error) {
 	return r.GetByIDAndUserID(int(id), todo.UserID)
 }
 
+// CreateSubtask ...
 func (r *todoRepository) CreateSubtask(subtask models.Todo) (models.Todo, error) {
 	var id int64
 	query := `INSERT INTO todos (user_id, title, content, parent_id, stage, completed, project_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`
@@ -103,17 +110,20 @@ func (r *todoRepository) CreateSubtask(subtask models.Todo) (models.Todo, error)
 	return r.GetByIDAndUserID(int(id), subtask.UserID)
 }
 
+// Update ...
 func (r *todoRepository) Update(todo models.Todo) error {
 	query := `UPDATE todos SET title = $1, content = $2, completed = $3, stage = $4, project_id = $5 WHERE id = $6 AND user_id = $7`
 	_, err := r.db.Exec(query, todo.Title, todo.Content, todo.Completed, todo.Stage, todo.ProjectID, todo.ID, todo.UserID)
 	return err
 }
 
+// Delete ...
 func (r *todoRepository) Delete(id, userID int) error {
 	_, err := r.db.Exec("DELETE FROM todos WHERE id = $1 AND user_id = $2", id, userID)
 	return err
 }
 
+// ToggleCompleted ...
 func (r *todoRepository) ToggleCompleted(id, userID int) (bool, error) {
 	var currentCompleted bool
 	err := r.db.QueryRow("SELECT completed FROM todos WHERE id = $1 AND user_id = $2", id, userID).Scan(&currentCompleted)
@@ -126,6 +136,7 @@ func (r *todoRepository) ToggleCompleted(id, userID int) (bool, error) {
 	return newCompleted, err
 }
 
+// CheckExistsAndProjectID ...
 func (r *todoRepository) CheckExistsAndProjectID(id, userID int) (bool, *int, error) {
 	var exists bool
 	var parentProjectID sql.NullInt64
@@ -140,13 +151,14 @@ func (r *todoRepository) CheckExistsAndProjectID(id, userID int) (bool, *int, er
 	return exists, pID, err
 }
 
+// GetAllByUserID ...
 func (r *todoRepository) GetAllByUserID(userID int) ([]models.Todo, error) {
 	rows, err := r.db.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
 		FROM todos WHERE user_id = $1 ORDER BY created_at DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var todos []models.Todo
 	for rows.Next() {
