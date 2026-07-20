@@ -17,6 +17,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - DATABASE_URL=postgres://todo_test_user:todo_test_password@db:5432/todo_test_db?sslmode=disable
+      - JWT_SECRET=test_jwt_secret
     depends_on:
       - db
     restart: on-failure
@@ -27,6 +28,7 @@ services:
       dockerfile: Dockerfile.test
     environment:
       - DATABASE_URL=postgres://todo_test_user:todo_test_password@db:5432/todo_test_db?sslmode=disable
+      - JWT_SECRET=test_jwt_secret
     depends_on:
       - db
     profiles:

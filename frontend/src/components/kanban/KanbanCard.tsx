@@ -25,6 +25,28 @@ const KanbanCard = ({ todo, onDragStart, onTodoUpdate, onTodoDelete, onClick }) 
             onClick={onClick}
         >
             <div className="p-4">
+                <div className="flex gap-2 mb-2">
+                    {todo.task_type && (
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            todo.task_type === 'Bug' ? 'bg-danger/10 text-danger' : 
+                            todo.task_type === 'Feature' ? 'bg-success/10 text-success' : 
+                            todo.task_type === 'Epic' ? 'bg-purple-500/10 text-purple-500' : 
+                            'bg-primary/10 text-primary'
+                        }`}>
+                            {todo.task_type}
+                        </span>
+                    )}
+                    {todo.priority && (
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            todo.priority === 'Urgent' ? 'bg-danger/20 text-danger' : 
+                            todo.priority === 'High' ? 'bg-orange-500/20 text-orange-500' : 
+                            todo.priority === 'Medium' ? 'bg-yellow-500/20 text-yellow-500' : 
+                            'bg-blue-500/10 text-blue-500'
+                        }`}>
+                            {todo.priority}
+                        </span>
+                    )}
+                </div>
                 <div className="flex justify-between items-start mb-2 gap-2">
                     <span 
                         className={`text-[15px] leading-tight font-semibold transition-colors flex-1 ${

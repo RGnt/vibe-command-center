@@ -38,8 +38,8 @@ func InitDB() {
 	if err != nil {
 		log.Println("Note: Failed to load age extension:", err)
 	} else {
-		// Set search path so we don't have to fully qualify cypher calls
-		_, _ = DB.Exec(`SET search_path = ag_catalog, "$user", public;`)
+		// Set search path so we don't have to fully qualify cypher calls, but keep public first for CREATE TABLE
+		_, _ = DB.Exec(`SET search_path = public, ag_catalog, "$user";`)
 		
 		// Create the graph
 		// Apache AGE's create_graph throws an error if it already exists, so we just log it
@@ -100,6 +100,7 @@ func createTables() {
 		name TEXT NOT NULL,
 		description TEXT DEFAULT '',
 		workflow_id INTEGER REFERENCES workflows(id) ON DELETE SET NULL,
+		custom_field_schema JSONB DEFAULT '[]',
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	)`)
 	if err != nil {
@@ -116,7 +117,10 @@ func createTables() {
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		parent_id INTEGER REFERENCES todos(id) ON DELETE CASCADE,
 		project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
-		stage TEXT DEFAULT 'To Do'
+		stage TEXT DEFAULT 'To Do',
+		task_type TEXT DEFAULT 'Task',
+		priority TEXT DEFAULT 'Medium',
+		custom_fields JSONB DEFAULT '{}'
 	)`)
 	if err != nil {
 		log.Fatal("Failed to create todos table:", err)
@@ -138,6 +142,7 @@ func createTables() {
 		id SERIAL PRIMARY KEY,
 		user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
 		project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+		parent_id INTEGER REFERENCES wiki_pages(id) ON DELETE CASCADE,
 		category TEXT DEFAULT 'General',
 		title TEXT NOT NULL,
 		slug TEXT NOT NULL,
@@ -148,6 +153,23 @@ func createTables() {
 	)`)
 	if err != nil {
 		log.Fatal("Failed to create wiki_pages table:", err)
+	}
+
+	// Migrate existing wiki_pages
+	_, err = DB.Exec(`ALTER TABLE wiki_pages ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES wiki_pages(id) ON DELETE CASCADE`)
+	if err != nil {
+		log.Fatal("Failed to alter wiki_pages table:", err)
+	}
+
+	// Create wiki_page_revisions table
+	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS wiki_page_revisions (
+		id SERIAL PRIMARY KEY,
+		wiki_page_id INTEGER REFERENCES wiki_pages(id) ON DELETE CASCADE,
+		content TEXT NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	)`)
+	if err != nil {
+		log.Fatal("Failed to create wiki_page_revisions table:", err)
 	}
 
 	// Create icons table
@@ -199,6 +221,12 @@ func createTables() {
 		_, _ = DB.Exec(`ALTER TABLE ` + table + ` ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE`)
 	}
 	_, _ = DB.Exec(`ALTER TABLE icons ADD COLUMN IF NOT EXISTS folder TEXT DEFAULT 'General'`)
+
+	// Migrate existing tables for Task extensions
+	_, _ = DB.Exec(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS custom_field_schema JSONB DEFAULT '[]'`)
+	_, _ = DB.Exec(`ALTER TABLE todos ADD COLUMN IF NOT EXISTS task_type TEXT DEFAULT 'Task'`)
+	_, _ = DB.Exec(`ALTER TABLE todos ADD COLUMN IF NOT EXISTS priority TEXT DEFAULT 'Medium'`)
+	_, _ = DB.Exec(`ALTER TABLE todos ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}'`)
 
 	// Revoked JWT tokens blocklist (AUTH-01)
 	_, err = DB.Exec(`CREATE TABLE IF NOT EXISTS revoked_tokens (

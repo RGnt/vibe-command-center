@@ -2,6 +2,7 @@ import React from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import KanbanBoard from '../../../components/kanban/KanbanBoard';
+import ProjectSettingsModal from '../../../components/project/ProjectSettingsModal';
 import { projectQueryOptions, projectTodosQueryOptions, workflowsQueryOptions } from '../../../utils/queries';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -23,6 +24,23 @@ function ProjectKanbanRoute() {
   const { data: project } = useSuspenseQuery(projectQueryOptions(projectId));
   const { data: todos } = useSuspenseQuery(projectTodosQueryOptions(projectId));
   const { data: workflows } = useSuspenseQuery(workflowsQueryOptions);
+
+  const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
+
+  const updateProjectMutation = useMutation({
+    mutationFn: async (updates) => {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...project, ...updates }),
+      });
+      if (!response.ok) throw new Error('Failed to update project');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
+    },
+  });
 
   const createTodoMutation = useMutation({
     mutationFn: async (todo) => {
@@ -82,8 +100,17 @@ function ProjectKanbanRoute() {
 
   return (
     <div className="flex-1 p-6 h-full overflow-hidden flex flex-col">
-        <h1 className="text-2xl font-bold mb-4">{project.name} Board</h1>
+        <div className="flex items-center gap-4 mb-4">
+            <h1 className="text-2xl font-bold">{project.name} Board</h1>
+            <button 
+                onClick={() => setIsSettingsOpen(true)}
+                className="px-3 py-1.5 text-sm bg-bg-panel hover:bg-bg-hover text-text-muted hover:text-text-base border border-border rounded-lg transition-colors"
+            >
+                Project Settings
+            </button>
+        </div>
         <KanbanBoard 
+            project={project}
             activeProjectWorkflowId={project.workflow_id}
             todos={todos}
             workflows={workflows}
@@ -91,6 +118,12 @@ function ProjectKanbanRoute() {
             onTodoUpdate={(id, updates) => updateTodoMutation.mutate({ id, updates })}
             onTodoDelete={(id) => deleteTodoMutation.mutate(id)}
             onAddSubtask={(todo) => createSubtaskMutation.mutate(todo)}
+        />
+        <ProjectSettingsModal 
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            project={project}
+            onSave={(updates) => updateProjectMutation.mutate(updates)}
         />
     </div>
   );

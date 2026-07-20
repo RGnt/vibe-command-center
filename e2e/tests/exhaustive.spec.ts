@@ -42,7 +42,7 @@ test.describe('Exhaustive E2E Test Suite', () => {
             await page.getByRole('button', { name: 'Sign Up' }).click();
 
             // Wait for error message
-            await expect(page.getByText('Email might already exist')).toBeVisible();
+            await expect(page.getByText('If this email is not already registered', { exact: false })).toBeVisible();
         });
 
         test('Login with incorrect password', async ({ page }) => {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import KanbanColumn from './KanbanColumn';
 import TaskModal from './TaskModal';
 
-const KanbanBoard = ({ todos, workflows, activeProjectWorkflowId, onTodoUpdate, onTodoDelete, onAddSubtask, onTodoCreate }) => {
+const KanbanBoard = ({ project, todos, workflows, activeProjectWorkflowId, onTodoUpdate, onTodoDelete, onAddSubtask, onTodoCreate }) => {
     const [stages, setStages] = useState([]);
     const [activeWorkflow, setActiveWorkflow] = useState(null);
     const [showWorkflowModal, setShowWorkflowModal] = useState(false);
@@ -193,6 +193,7 @@ const KanbanBoard = ({ todos, workflows, activeProjectWorkflowId, onTodoUpdate, 
 
             {/* Task Creation/Editing Modal */}
             <TaskModal
+                project={project}
                 isOpen={isTaskModalOpen}
                 onClose={() => setIsTaskModalOpen(false)}
                 onSave={handleTaskModalSave}

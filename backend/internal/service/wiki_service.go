@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"regexp"
 	"strings"
 	"todo-backend/internal/models"
@@ -14,6 +15,8 @@ type WikiService interface {
 	CreateWiki(userID int, wiki models.WikiPage) (models.WikiPage, error)
 	UpdateWiki(id, userID int, wiki models.WikiPage) (models.WikiPage, error)
 	DeleteWiki(id, userID int) error
+	GetWikiRevisions(wikiID, userID int) ([]models.WikiPageRevision, error)
+	GetWikiRevision(wikiID, revID, userID int) (models.WikiPageRevision, error)
 }
 
 type wikiService struct {
@@ -62,10 +65,40 @@ func (s *wikiService) UpdateWiki(id, userID int, wiki models.WikiPage) (models.W
 	if wiki.Slug == "" {
 		wiki.Slug = generateSlug(wiki.Title)
 	}
+
+	// Check for hierarchy cycle if setting a parent
+	if wiki.ParentID != nil {
+		if *wiki.ParentID == id {
+			return wiki, errors.New("a page cannot be its own parent")
+		}
+		
+		currentParentID := wiki.ParentID
+		for currentParentID != nil {
+			parentPage, err := s.wikiRepo.GetByIDAndUserID(*currentParentID, userID)
+			if err != nil {
+				break
+			}
+			if parentPage.ParentID != nil && *parentPage.ParentID == id {
+				return wiki, errors.New("hierarchy cycle detected")
+			}
+			currentParentID = parentPage.ParentID
+		}
+	}
+
 	return s.wikiRepo.Update(id, wiki)
 }
 
 // DeleteWiki ...
 func (s *wikiService) DeleteWiki(id, userID int) error {
 	return s.wikiRepo.Delete(id, userID)
+}
+
+// GetWikiRevisions ...
+func (s *wikiService) GetWikiRevisions(wikiID, userID int) ([]models.WikiPageRevision, error) {
+	return s.wikiRepo.GetRevisions(wikiID, userID)
+}
+
+// GetWikiRevision ...
+func (s *wikiService) GetWikiRevision(wikiID, revID, userID int) (models.WikiPageRevision, error) {
+	return s.wikiRepo.GetRevision(wikiID, revID, userID)
 }

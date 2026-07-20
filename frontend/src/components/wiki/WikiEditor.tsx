@@ -11,7 +11,10 @@ const WikiEditor = ({
     editSlug, 
     setEditSlug, 
     editContent, 
-    setEditContent, 
+    setEditContent,
+    editParentId,
+    setEditParentId,
+    pages,
     onCancel, 
     onSave 
 }) => {
@@ -59,6 +62,18 @@ const WikiEditor = ({
                         className="flex-1 bg-bg-panel border border-border rounded-lg px-4 py-2 text-text-base focus:border-primary focus:outline-none font-mono text-sm"
                         disabled={!!activePage}
                     />
+                    <select
+                        value={editParentId}
+                        onChange={(e) => setEditParentId(e.target.value)}
+                        className="flex-1 bg-bg-panel border border-border rounded-lg px-4 py-2 text-text-base focus:border-primary focus:outline-none"
+                    >
+                        <option value="">No Parent (Top Level)</option>
+                        {pages.filter(p => p.id !== activePage?.id).map(page => (
+                            <option key={page.id} value={page.id}>
+                                {page.title}
+                            </option>
+                        ))}
+                    </select>
                 </div>
             </div>
 

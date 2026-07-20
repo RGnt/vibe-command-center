@@ -15,6 +15,7 @@ const WikiView = ({ project, isGlobal = false }) => {
     const [editCategory, setEditCategory] = useState('');
     const [editSlug, setEditSlug] = useState('');
     const [editContent, setEditContent] = useState('');
+    const [editParentId, setEditParentId] = useState('');
 
     useEffect(() => {
         fetchPages();
@@ -66,6 +67,7 @@ const WikiView = ({ project, isGlobal = false }) => {
         setEditCategory('General');
         setEditSlug(`new-page-${Date.now()}`);
         setEditContent('# New Page\n\nWrite something here...');
+        setEditParentId('');
     };
 
     const handleEdit = () => {
@@ -75,6 +77,7 @@ const WikiView = ({ project, isGlobal = false }) => {
         setEditCategory(activePage.category);
         setEditSlug(activePage.slug);
         setEditContent(activePage.content);
+        setEditParentId(activePage.parent_id || '');
     };
 
     const handleSave = async () => {
@@ -83,7 +86,8 @@ const WikiView = ({ project, isGlobal = false }) => {
             category: editCategory,
             slug: editSlug,
             content: editContent,
-            project_id: isGlobal ? null : project.id
+            project_id: isGlobal ? null : project.id,
+            parent_id: editParentId ? parseInt(editParentId, 10) : null
         };
 
         try {
@@ -157,6 +161,9 @@ const WikiView = ({ project, isGlobal = false }) => {
                         setEditSlug={setEditSlug}
                         editContent={editContent}
                         setEditContent={setEditContent}
+                        editParentId={editParentId}
+                        setEditParentId={setEditParentId}
+                        pages={pages}
                         onCancel={() => {
                             setIsEditing(false);
                             if (!activePage) fetchPages();

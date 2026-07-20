@@ -26,7 +26,7 @@ func NewProjectRepository(db *sql.DB) ProjectRepository {
 
 // GetAllByUserID ...
 func (r *projectRepository) GetAllByUserID(userID int) ([]models.Project, error) {
-	rows, err := r.db.Query(`SELECT id, name, description, workflow_id, created_at FROM projects WHERE user_id = $1 ORDER BY created_at DESC`, userID)
+	rows, err := r.db.Query(`SELECT id, name, description, workflow_id, custom_field_schema, created_at FROM projects WHERE user_id = $1 ORDER BY created_at DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (r *projectRepository) GetAllByUserID(userID int) ([]models.Project, error)
 		var workflowID sql.NullInt64
 		var createdAt time.Time
 
-		err := rows.Scan(&project.ID, &project.Name, &project.Description, &workflowID, &createdAt)
+		err := rows.Scan(&project.ID, &project.Name, &project.Description, &workflowID, &project.CustomFieldSchema, &createdAt)
 		if err != nil {
 			return nil, err
 		}
@@ -62,8 +62,8 @@ func (r *projectRepository) GetByIDAndUserID(id, userID int) (models.Project, er
 	var workflowID sql.NullInt64
 	var createdAt time.Time
 
-	err := r.db.QueryRow(`SELECT id, name, description, workflow_id, created_at FROM projects WHERE id = $1 AND user_id = $2`, id, userID).
-		Scan(&project.ID, &project.Name, &project.Description, &workflowID, &createdAt)
+	err := r.db.QueryRow(`SELECT id, name, description, workflow_id, custom_field_schema, created_at FROM projects WHERE id = $1 AND user_id = $2`, id, userID).
+		Scan(&project.ID, &project.Name, &project.Description, &workflowID, &project.CustomFieldSchema, &createdAt)
 	if err != nil {
 		return project, err
 	}
@@ -88,8 +88,14 @@ func (r *projectRepository) Create(project models.Project) (models.Project, erro
 	defer func() { _ = tx.Rollback() }()
 
 	var id int64
-	query := `INSERT INTO projects (user_id, name, description, workflow_id) VALUES ($1, $2, $3, $4) RETURNING id`
-	err = tx.QueryRow(query, project.UserID, project.Name, project.Description, project.WorkflowID).Scan(&id)
+	query := `INSERT INTO projects (user_id, name, description, workflow_id, custom_field_schema) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	
+	schemaBytes := []byte("[]")
+	if project.CustomFieldSchema != "" {
+		schemaBytes = []byte(project.CustomFieldSchema)
+	}
+
+	err = tx.QueryRow(query, project.UserID, project.Name, project.Description, project.WorkflowID, schemaBytes).Scan(&id)
 	if err != nil {
 		return project, err
 	}
@@ -112,8 +118,14 @@ func (r *projectRepository) Create(project models.Project) (models.Project, erro
 
 // Update ...
 func (r *projectRepository) Update(project models.Project) error {
-	query := `UPDATE projects SET name = $1, description = $2, workflow_id = $3 WHERE id = $4 AND user_id = $5`
-	_, err := r.db.Exec(query, project.Name, project.Description, project.WorkflowID, project.ID, project.UserID)
+	query := `UPDATE projects SET name = $1, description = $2, workflow_id = $3, custom_field_schema = $4 WHERE id = $5 AND user_id = $6`
+	
+	schemaBytes := []byte("[]")
+	if project.CustomFieldSchema != "" {
+		schemaBytes = []byte(project.CustomFieldSchema)
+	}
+
+	_, err := r.db.Exec(query, project.Name, project.Description, project.WorkflowID, schemaBytes, project.ID, project.UserID)
 	return err
 }
 

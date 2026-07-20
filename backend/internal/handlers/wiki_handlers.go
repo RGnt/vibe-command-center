@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -35,6 +36,7 @@ func (h *WikiHandler) GetWikis(w http.ResponseWriter, r *http.Request) {
 
 	wikis, err := h.wikiService.GetWikis(userID)
 	if err != nil {
+		log.Println("Error in GetWikis:", err)
 		http.Error(w, "Failed to fetch wikis", http.StatusInternalServerError)
 		return
 	}
@@ -147,4 +149,70 @@ func (h *WikiHandler) DeleteWiki(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetWikiRevisions ...
+func (h *WikiHandler) GetWikiRevisions(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Invalid wiki ID", http.StatusBadRequest)
+		return
+	}
+
+	revisions, err := h.wikiService.GetWikiRevisions(id, userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Wiki not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Failed to fetch revisions", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if revisions == nil {
+		revisions = []models.WikiPageRevision{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(revisions)
+}
+
+// GetWikiRevision ...
+func (h *WikiHandler) GetWikiRevision(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "Invalid wiki ID", http.StatusBadRequest)
+		return
+	}
+
+	revID, err := strconv.Atoi(chi.URLParam(r, "revID"))
+	if err != nil {
+		http.Error(w, "Invalid revision ID", http.StatusBadRequest)
+		return
+	}
+
+	revision, err := h.wikiService.GetWikiRevision(id, revID, userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Revision not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Failed to fetch revision", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(revision)
 }

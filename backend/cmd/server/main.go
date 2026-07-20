@@ -178,10 +178,12 @@ func main() {
 
 		// Wiki routes
 		r.Get("/api/wikis", wikiHandler.GetWikis)
-		r.Get("/api/wikis/{slug}", wikiHandler.GetWiki)
+		r.Get("/api/wikis/{slug:*}", wikiHandler.GetWiki)
 		r.Post("/api/wikis", wikiHandler.CreateWiki)
 		r.Put("/api/wikis/{id}", wikiHandler.UpdateWiki)
 		r.Delete("/api/wikis/{id}", wikiHandler.DeleteWiki)
+		r.Get("/api/wikis/{id}/revisions", wikiHandler.GetWikiRevisions)
+		r.Get("/api/wikis/{id}/revisions/{revID}", wikiHandler.GetWikiRevision)
 	})
 
 	log.Println("Server starting on :8080...")

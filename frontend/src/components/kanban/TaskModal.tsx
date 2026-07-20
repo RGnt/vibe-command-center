@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import MarkdownRenderer from '../shared/MarkdownRenderer';
 
-const TaskModal = ({ isOpen, onClose, onSave, onAddSubtask, onToggleSubtask, onDeleteTodo, initialData, isEditMode, stageName }) => {
+const TaskModal = ({ project, isOpen, onClose, onSave, onAddSubtask, onToggleSubtask, onDeleteTodo, initialData, isEditMode, stageName }) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
+    const [taskType, setTaskType] = useState('Task');
+    const [priority, setPriority] = useState('Medium');
+    const [customFields, setCustomFields] = useState({});
     const [newSubtask, setNewSubtask] = useState('');
     const [activeTab, setActiveTab] = useState('write'); // 'write' or 'preview'
 
@@ -12,9 +15,15 @@ const TaskModal = ({ isOpen, onClose, onSave, onAddSubtask, onToggleSubtask, onD
             if (isEditMode && initialData) {
                 setTitle(initialData.title || '');
                 setContent(initialData.content || '');
+                setTaskType(initialData.task_type || 'Task');
+                setPriority(initialData.priority || 'Medium');
+                setCustomFields(initialData.custom_fields || {});
             } else {
                 setTitle('');
                 setContent('');
+                setTaskType('Task');
+                setPriority('Medium');
+                setCustomFields({});
             }
             setNewSubtask('');
             setActiveTab('write');
@@ -27,9 +36,9 @@ const TaskModal = ({ isOpen, onClose, onSave, onAddSubtask, onToggleSubtask, onD
         e.preventDefault();
         if (title.trim()) {
             if (isEditMode) {
-                onSave({ ...initialData, title, content });
+                onSave({ ...initialData, title, content, task_type: taskType, priority, custom_fields: customFields });
             } else {
-                onSave({ title, content, stage: stageName });
+                onSave({ title, content, stage: stageName, task_type: taskType, priority, custom_fields: customFields });
             }
             onClose();
         }
@@ -79,6 +88,27 @@ const TaskModal = ({ isOpen, onClose, onSave, onAddSubtask, onToggleSubtask, onD
                             />
                         </div>
 
+                        <div className="flex gap-4">
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-text-muted mb-2">Type</label>
+                                <select value={taskType} onChange={(e) => setTaskType(e.target.value)} className="w-full p-3 rounded-lg bg-bg-base border border-border text-text-base focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <option value="Task">Task</option>
+                                    <option value="Bug">Bug</option>
+                                    <option value="Feature">Feature</option>
+                                    <option value="Epic">Epic</option>
+                                </select>
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-sm font-medium text-text-muted mb-2">Priority</label>
+                                <select value={priority} onChange={(e) => setPriority(e.target.value)} className="w-full p-3 rounded-lg bg-bg-base border border-border text-text-base focus:outline-none focus:ring-2 focus:ring-primary">
+                                    <option value="Low">Low</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="High">High</option>
+                                    <option value="Urgent">Urgent</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div>
                             <div className="flex justify-between items-center mb-2">
                                 <label className="block text-sm font-medium text-text-muted">Description</label>
@@ -115,6 +145,56 @@ const TaskModal = ({ isOpen, onClose, onSave, onAddSubtask, onToggleSubtask, onD
                                 </div>
                             )}
                         </div>
+
+                        {project?.custom_field_schema && (() => {
+                            let schema = [];
+                            try {
+                                schema = typeof project.custom_field_schema === 'string' 
+                                    ? JSON.parse(project.custom_field_schema) 
+                                    : project.custom_field_schema;
+                            } catch (e) {
+                                console.error('Failed to parse custom field schema', e);
+                            }
+                            
+                            if (!Array.isArray(schema) || schema.length === 0) return null;
+
+                            return (
+                                <div className="space-y-4 pt-4 border-t border-border">
+                                    <h4 className="text-lg font-semibold text-text-base mb-4">Custom Fields</h4>
+                                    {schema.map((field) => (
+                                        <div key={field.name}>
+                                            <label className="block text-sm font-medium text-text-muted mb-1">{field.name}</label>
+                                            {field.type === 'Number' ? (
+                                                <input 
+                                                    type="number"
+                                                    value={customFields[field.name] || ''}
+                                                    onChange={(e) => setCustomFields({ ...customFields, [field.name]: Number(e.target.value) })}
+                                                    className="w-full p-2 rounded-lg bg-bg-base border border-border text-text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                                                />
+                                            ) : field.type === 'Dropdown' ? (
+                                                <select 
+                                                    value={customFields[field.name] || ''}
+                                                    onChange={(e) => setCustomFields({ ...customFields, [field.name]: e.target.value })}
+                                                    className="w-full p-2 rounded-lg bg-bg-base border border-border text-text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                                                >
+                                                    <option value="">Select...</option>
+                                                    {(field.options || []).map(opt => (
+                                                        <option key={opt} value={opt}>{opt}</option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <input 
+                                                    type="text"
+                                                    value={customFields[field.name] || ''}
+                                                    onChange={(e) => setCustomFields({ ...customFields, [field.name]: e.target.value })}
+                                                    className="w-full p-2 rounded-lg bg-bg-base border border-border text-text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                                                />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            );
+                        })()}
 
                         {isEditMode && initialData && (
                             <div className="pt-4 border-t border-border">

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 	"todo-backend/internal/models"
 )
@@ -36,10 +37,10 @@ func (r *todoRepository) GetAllTopLevel(userID int, projectID *int) ([]models.To
 	var err error
 
 	if projectID != nil {
-		rows, err = r.db.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
+		rows, err = r.db.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage, task_type, priority, custom_fields 
 			FROM todos WHERE parent_id IS NULL AND project_id = $1 AND user_id = $2 ORDER BY created_at DESC`, *projectID, userID)
 	} else {
-		rows, err = r.db.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
+		rows, err = r.db.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage, task_type, priority, custom_fields 
 			FROM todos WHERE parent_id IS NULL AND user_id = $1 ORDER BY created_at DESC`, userID)
 	}
 
@@ -61,14 +62,14 @@ func (r *todoRepository) GetAllTopLevel(userID int, projectID *int) ([]models.To
 
 // GetByIDAndUserID ...
 func (r *todoRepository) GetByIDAndUserID(id, userID int) (models.Todo, error) {
-	row := r.db.QueryRow(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
+	row := r.db.QueryRow(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage, task_type, priority, custom_fields 
 		FROM todos WHERE id = $1 AND user_id = $2`, id, userID)
 	return scanTodoRow(row, userID)
 }
 
 // GetSubtasks ...
 func (r *todoRepository) GetSubtasks(parentID, userID int) ([]models.Todo, error) {
-	rows, err := r.db.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
+	rows, err := r.db.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage, task_type, priority, custom_fields 
 		FROM todos WHERE parent_id = $1 AND user_id = $2 ORDER BY created_at DESC`, parentID, userID)
 	if err != nil {
 		return nil, err
@@ -89,8 +90,14 @@ func (r *todoRepository) GetSubtasks(parentID, userID int) ([]models.Todo, error
 // Create ...
 func (r *todoRepository) Create(todo models.Todo) (models.Todo, error) {
 	var id int64
-	query := `INSERT INTO todos (user_id, title, content, stage, completed, project_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
-	err := r.db.QueryRow(query, todo.UserID, todo.Title, todo.Content, todo.Stage, todo.Completed, todo.ProjectID).Scan(&id)
+	query := `INSERT INTO todos (user_id, title, content, stage, completed, project_id, task_type, priority, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`
+	
+	customFieldsJSON, _ := json.Marshal(todo.CustomFields)
+	if todo.CustomFields == nil {
+		customFieldsJSON = []byte("{}")
+	}
+
+	err := r.db.QueryRow(query, todo.UserID, todo.Title, todo.Content, todo.Stage, todo.Completed, todo.ProjectID, todo.TaskType, todo.Priority, customFieldsJSON).Scan(&id)
 	if err != nil {
 		return todo, err
 	}
@@ -101,8 +108,14 @@ func (r *todoRepository) Create(todo models.Todo) (models.Todo, error) {
 // CreateSubtask ...
 func (r *todoRepository) CreateSubtask(subtask models.Todo) (models.Todo, error) {
 	var id int64
-	query := `INSERT INTO todos (user_id, title, content, parent_id, stage, completed, project_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`
-	err := r.db.QueryRow(query, subtask.UserID, subtask.Title, subtask.Content, subtask.ParentID, subtask.Stage, subtask.Completed, subtask.ProjectID).Scan(&id)
+	query := `INSERT INTO todos (user_id, title, content, parent_id, stage, completed, project_id, task_type, priority, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`
+
+	customFieldsJSON, _ := json.Marshal(subtask.CustomFields)
+	if subtask.CustomFields == nil {
+		customFieldsJSON = []byte("{}")
+	}
+
+	err := r.db.QueryRow(query, subtask.UserID, subtask.Title, subtask.Content, subtask.ParentID, subtask.Stage, subtask.Completed, subtask.ProjectID, subtask.TaskType, subtask.Priority, customFieldsJSON).Scan(&id)
 	if err != nil {
 		return subtask, err
 	}
@@ -112,8 +125,14 @@ func (r *todoRepository) CreateSubtask(subtask models.Todo) (models.Todo, error)
 
 // Update ...
 func (r *todoRepository) Update(todo models.Todo) error {
-	query := `UPDATE todos SET title = $1, content = $2, completed = $3, stage = $4, project_id = $5 WHERE id = $6 AND user_id = $7`
-	_, err := r.db.Exec(query, todo.Title, todo.Content, todo.Completed, todo.Stage, todo.ProjectID, todo.ID, todo.UserID)
+	query := `UPDATE todos SET title = $1, content = $2, completed = $3, stage = $4, project_id = $5, task_type = $6, priority = $7, custom_fields = $8 WHERE id = $9 AND user_id = $10`
+	
+	customFieldsJSON, _ := json.Marshal(todo.CustomFields)
+	if todo.CustomFields == nil {
+		customFieldsJSON = []byte("{}")
+	}
+
+	_, err := r.db.Exec(query, todo.Title, todo.Content, todo.Completed, todo.Stage, todo.ProjectID, todo.TaskType, todo.Priority, customFieldsJSON, todo.ID, todo.UserID)
 	return err
 }
 
@@ -150,7 +169,7 @@ func (r *todoRepository) CheckExistsAndProjectID(id, userID int) (bool, *int, er
 
 // GetAllByUserID ...
 func (r *todoRepository) GetAllByUserID(userID int) ([]models.Todo, error) {
-	rows, err := r.db.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage 
+	rows, err := r.db.Query(`SELECT id, title, content, completed, created_at, parent_id, project_id, stage, task_type, priority, custom_fields 
 		FROM todos WHERE user_id = $1 ORDER BY created_at DESC`, userID)
 	if err != nil {
 		return nil, err
@@ -175,14 +194,22 @@ func scanTodo(scanner interface{ Scan(dest ...interface{}) error }, userID int) 
 	var parentID sql.NullInt64
 	var projectID sql.NullInt64
 	var createdAt time.Time
+	var customFieldsJSON []byte
 
-	err := scanner.Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage)
+	err := scanner.Scan(&todo.ID, &todo.Title, &todo.Content, &todo.Completed, &createdAt, &parentID, &projectID, &todo.Stage, &todo.TaskType, &todo.Priority, &customFieldsJSON)
 	if err != nil {
 		return todo, err
 	}
 
 	todo.UserID = userID
 	todo.CreatedAt = createdAt
+
+	if len(customFieldsJSON) > 0 {
+		_ = json.Unmarshal(customFieldsJSON, &todo.CustomFields)
+	}
+	if todo.CustomFields == nil {
+		todo.CustomFields = make(map[string]interface{})
+	}
 
 	if parentID.Valid {
 		pid := int(parentID.Int64)

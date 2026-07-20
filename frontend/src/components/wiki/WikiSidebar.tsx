@@ -8,13 +8,46 @@ const WikiSidebar = ({
     onPageSelect, 
     onCreateNew 
 }) => {
-    // Group pages by category
-    const categories = pages.reduce((acc, page) => {
+    // Group top-level pages by category
+    const topLevelPages = pages.filter(p => !p.parent_id);
+    const categories = topLevelPages.reduce((acc, page) => {
         const cat = page.category || 'General';
         if (!acc[cat]) acc[cat] = [];
         acc[cat].push(page);
         return acc;
     }, {});
+
+    const renderPageNode = (page, depth = 0) => {
+        const children = pages.filter(p => p.parent_id === page.id);
+        const isSelected = activePage?.id === page.id && !isEditing;
+        
+        return (
+            <div key={page.id} className="w-full">
+                <button
+                    onClick={() => onPageSelect(page)}
+                    className={`w-full text-left py-1.5 rounded-lg text-sm transition-colors flex items-center ${
+                        isSelected
+                            ? 'bg-accent/10 text-accent font-medium border-l-2 border-accent'
+                            : 'text-text-base hover:bg-bg-hover border-l-2 border-transparent'
+                    }`}
+                    style={{ paddingLeft: `${(depth * 1.5) + 0.75}rem`, paddingRight: '0.75rem' }}
+                >
+                    {children.length > 0 && (
+                        <svg className="w-3 h-3 mr-1.5 text-text-muted shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    )}
+                    {children.length === 0 && <span className="w-4.5 mr-1.5 inline-block shrink-0"></span>}
+                    <span className="truncate">{page.title}</span>
+                </button>
+                {children.length > 0 && (
+                    <div className="flex flex-col mt-0.5">
+                        {children.map(child => renderPageNode(child, depth + 1))}
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className="w-64 bg-bg-panel/50 border-r border-border flex flex-col shrink-0">
@@ -37,19 +70,7 @@ const WikiSidebar = ({
                     <div key={cat}>
                         <div className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2 px-2">{cat}</div>
                         <div className="space-y-1">
-                            {categories[cat].map(page => (
-                                <button
-                                    key={page.id}
-                                    onClick={() => onPageSelect(page)}
-                                    className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                                        activePage?.id === page.id && !isEditing
-                                            ? 'bg-accent/10 text-accent font-medium border-l-2 border-accent'
-                                            : 'text-text-base hover:bg-bg-hover border-l-2 border-transparent'
-                                    }`}
-                                >
-                                    {page.title}
-                                </button>
-                            ))}
+                            {categories[cat].map(page => renderPageNode(page, 0))}
                         </div>
                     </div>
                 ))}

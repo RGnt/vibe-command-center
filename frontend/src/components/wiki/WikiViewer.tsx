@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MarkdownRenderer from '../shared/MarkdownRenderer';
+import WikiHistory from './WikiHistory';
 
 const WikiViewer = ({ activePage, onEdit, onDelete }) => {
+    const [showHistory, setShowHistory] = useState(false);
     if (!activePage) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center text-text-muted p-8 text-center">
@@ -14,7 +16,13 @@ const WikiViewer = ({ activePage, onEdit, onDelete }) => {
     }
 
     return (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto relative">
+            {showHistory && (
+                <WikiHistory 
+                    activePage={activePage} 
+                    onClose={() => setShowHistory(false)} 
+                />
+            )}
             <div className="max-w-4xl mx-auto px-8 py-12">
                 <div className="flex justify-between items-start mb-8 pb-4 border-b border-border/50">
                     <div>
@@ -27,6 +35,16 @@ const WikiViewer = ({ activePage, onEdit, onDelete }) => {
                         </div>
                     </div>
                     <div className="flex gap-2">
+                        <button 
+                            onClick={() => setShowHistory(true)}
+                            className="px-3 py-1.5 rounded-lg text-sm font-medium text-text-muted hover:bg-bg-hover hover:text-primary transition-colors flex items-center gap-2 border border-border"
+                            title="View History"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            History
+                        </button>
                         <button 
                             onClick={onEdit}
                             className="p-2 rounded-lg text-text-muted hover:bg-bg-hover hover:text-primary transition-colors"

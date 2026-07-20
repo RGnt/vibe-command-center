@@ -258,41 +258,44 @@ async def convert_document(req: ConvertRequest):
                 yield f"data: {json.dumps({'status': 'error', 'detail': result['error']})}\n\n"
             else:
                 markdown = result["markdown"]
-                docling_doc = result["document"]
                 yield f"data: {json.dumps({'status': 'extracting_graph'})}\n\n"
                 
                 graph_task = loop.run_in_executor(None, extract_knowledge_graph, markdown)
                 
                 # Extract Structural Graph
                 import hashlib
-                from docling_core.transforms.chunker.hierarchical_chunker import HierarchicalChunker
-                
-                chunker = HierarchicalChunker()
-                chunks = list(chunker.chunk(docling_doc))
+                import re
                 
                 doc_name = req.original_filename if req.original_filename else os.path.basename(req.filepath)
                 doc_id = hashlib.md5(doc_name.encode()).hexdigest()
                 structural_nodes = [{"id": doc_id, "label": "Document", "properties": {"name": doc_name}}]
                 structural_edges = []
                 
-                for c in chunks:
-                    chunk_id = hashlib.md5(c.text.encode()).hexdigest()
-                    structural_nodes.append({"id": chunk_id, "label": "Segment", "properties": {"text": c.text[:200]}})
-                    
-                    headings = c.meta.headings if hasattr(c.meta, 'headings') and c.meta.headings else []
-                    parent_id = doc_id
-                    
-                    if headings:
-                        chapter_name = headings[-1]
+                # Basic text splitting by double newline to simulate chunks
+                # and looking for markdown headers to simulate chapters
+                paragraphs = markdown.split('\n\n')
+                current_chapter_id = doc_id
+                
+                for p in paragraphs:
+                    p = p.strip()
+                    if not p:
+                        continue
+                        
+                    # Check if it's a heading
+                    match = re.match(r'^(#{1,6})\s+(.*)', p)
+                    if match:
+                        chapter_name = match.group(2).strip()
                         chapter_id = hashlib.md5((doc_name + chapter_name).encode()).hexdigest()
                         
                         if not any(n["id"] == chapter_id for n in structural_nodes):
                             structural_nodes.append({"id": chapter_id, "label": "Chapter", "properties": {"name": chapter_name}})
                             structural_edges.append({"source": chapter_id, "target": doc_id, "label": "PART_OF"})
                             
-                        parent_id = chapter_id
+                        current_chapter_id = chapter_id
                         
-                    structural_edges.append({"source": chunk_id, "target": parent_id, "label": "PART_OF"})
+                    chunk_id = hashlib.md5(p.encode()).hexdigest()
+                    structural_nodes.append({"id": chunk_id, "label": "Segment", "properties": {"text": p[:200]}})
+                    structural_edges.append({"source": chunk_id, "target": current_chapter_id, "label": "PART_OF"})
 
                 while not graph_task.done():
                     yield f"data: {json.dumps({'status': 'extracting_graph'})}\n\n"

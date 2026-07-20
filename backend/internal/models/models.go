@@ -19,12 +19,13 @@ type UserSettings struct {
 
 // Project represents a project containing workflows, tasks, and wikis
 type Project struct {
-	ID          int       `json:"id"`
-	UserID      int       `json:"user_id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	WorkflowID  *int      `json:"workflow_id,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID                int       `json:"id"`
+	UserID            int       `json:"user_id"`
+	Name              string    `json:"name"`
+	Description       string    `json:"description"`
+	WorkflowID        *int      `json:"workflow_id,omitempty"`
+	CustomFieldSchema string    `json:"custom_field_schema"` // JSON string or raw bytes
+	CreatedAt         time.Time `json:"created_at"`
 }
 
 // WikiPage represents a single wiki document
@@ -32,6 +33,7 @@ type WikiPage struct {
 	ID        int       `json:"id"`
 	UserID    int       `json:"user_id"`
 	ProjectID *int      `json:"project_id,omitempty"`
+	ParentID  *int      `json:"parent_id,omitempty"`
 	Category  string    `json:"category"`
 	Title     string    `json:"title"`
 	Slug      string    `json:"slug"`
@@ -40,18 +42,29 @@ type WikiPage struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// WikiPageRevision represents a historical version of a wiki page
+type WikiPageRevision struct {
+	ID         int       `json:"id"`
+	WikiPageID int       `json:"wiki_page_id"`
+	Content    string    `json:"content"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
 // Todo represents a single todo item
 type Todo struct {
-	ID        int       `json:"id"`
-	UserID    int       `json:"user_id"`
-	Title     string    `json:"title"`
-	Content   string    `json:"content"`
-	Completed bool      `json:"completed"`
-	CreatedAt time.Time `json:"created_at"`
-	ParentID  *int      `json:"parent_id,omitempty"`
-	ProjectID *int      `json:"project_id,omitempty"`
-	Subtasks  []Todo    `json:"subtasks,omitempty"`
-	Stage     string    `json:"stage"`
+	ID           int                    `json:"id"`
+	UserID       int                    `json:"user_id"`
+	Title        string                 `json:"title"`
+	Content      string                 `json:"content"`
+	Completed    bool                   `json:"completed"`
+	CreatedAt    time.Time              `json:"created_at"`
+	ParentID     *int                   `json:"parent_id,omitempty"`
+	ProjectID    *int                   `json:"project_id,omitempty"`
+	Subtasks     []Todo                 `json:"subtasks,omitempty"`
+	Stage        string                 `json:"stage"`
+	TaskType     string                 `json:"task_type"`
+	Priority     string                 `json:"priority"`
+	CustomFields map[string]interface{} `json:"custom_fields"`
 }
 
 // WorkflowStage represents a stage in the workflow
